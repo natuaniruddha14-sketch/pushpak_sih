@@ -141,5 +141,119 @@ export class LocalStorageProvider implements FileStorageProvider {
   }
 }
 
-// Global active storage provider (default LocalStorageProvider)
-export const storageProvider: FileStorageProvider = new LocalStorageProvider();
+export class SupabaseStorageProvider implements FileStorageProvider {
+  private supabase: any;
+  private bucket: string;
+  private localFallback: LocalStorageProvider;
+
+  constructor() {
+    const supabaseUrl = process.env.SUPABASE_URL || '';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+    this.bucket = process.env.SUPABASE_STORAGE_BUCKET || 'mineintel-documents';
+    this.localFallback = new LocalStorageProvider();
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase credentials (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY) are required');
+    }
+
+    const { createClient } = require('@supabase/supabase-js');
+    this.supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false },
+    });
+  }
+
+  public validateSafePath(targetPath: string): string {
+    // For local fallback compatibility
+    try {
+      return this.localFallback.validateSafePath(targetPath);
+    } catch {
+      return targetPath.replace(/\\/g, '/');
+    }
+  }
+
+  async saveFile(buffer: Buffer, originalFilename: string, mimeType: string): Promise<StoredFileResult> {
+    const checksum = crypto.createHash('sha256').update(buffer).digest('hex');
+    const sanitizedFilename = this.localFallback.sanitizeFilename(originalFilename);
+    const storagePath = `documents/${checksum}/${sanitizedFilename}`;
+
+    // Upload to Supabase Storage bucket
+    const { error } = await this.supabase.storage
+      .from(this.bucket)
+      .upload(storagePath, buffer, {
+        contentType: mimeType || 'application/octet-stream',
+        upsert: true,
+      });
+
+    if (error) {
+      console.warn(`[SUPABASE STORAGE] Upload error, falling back to local storage:`, error.message);
+      return this.localFallback.saveFile(buffer, originalFilename, mimeType);
+    }
+
+    // Also write to local cache so local python parsers have direct zero-latency filesystem access
+    try {
+      await this.localFallback.saveFile(buffer, originalFilename, mimeType);
+    } catch (_e) {}
+
+    return {
+      storagePath,
+      checksum,
+      sizeBytes: buffer.length,
+      sanitizedFilename,
+    };
+  }
+
+  async getFile(storagePath: string): Promise<Buffer> {
+    // 1. Try Supabase storage if it's a Supabase bucket path
+    if (storagePath.startsWith('documents/') || !storagePath.startsWith('storage/')) {
+      try {
+        const { data, error } = await this.supabase.storage
+          .from(this.bucket)
+          .download(storagePath);
+
+        if (!error && data) {
+          const arrayBuf = await data.arrayBuffer();
+          return Buffer.from(arrayBuf);
+        }
+      } catch (_e) {}
+    }
+
+    // 2. Fallback to local storage if available
+    try {
+      return await this.localFallback.getFile(storagePath);
+    } catch {
+      throw new NotFoundError(`Requested file '${storagePath}' not found in Supabase bucket '${this.bucket}' or local cache`);
+    }
+  }
+
+  async deleteFile(storagePath: string): Promise<void> {
+    if (storagePath.startsWith('documents/')) {
+      try {
+        await this.supabase.storage.from(this.bucket).remove([storagePath]);
+      } catch (_e) {}
+    }
+    try {
+      await this.localFallback.deleteFile(storagePath);
+    } catch (_e) {}
+  }
+}
+
+// Storage provider factory: auto-detects Supabase or defaults to LocalStorage
+export function createStorageProvider(): FileStorageProvider {
+  const isSupabaseConfigured = Boolean(
+    process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
+  );
+
+  if (process.env.STORAGE_PROVIDER === 'supabase' || isSupabaseConfigured) {
+    try {
+      return new SupabaseStorageProvider();
+    } catch (err: any) {
+      console.warn(`[STORAGE] Failed to initialize SupabaseStorageProvider (${err.message}), using LocalStorageProvider`);
+    }
+  }
+
+  return new LocalStorageProvider();
+}
+
+// Global active storage provider
+export const storageProvider: FileStorageProvider = createStorageProvider();
+

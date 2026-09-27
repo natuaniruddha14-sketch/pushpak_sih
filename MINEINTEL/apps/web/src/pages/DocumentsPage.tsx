@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useOutletContext, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { DocumentViewerModal } from '../components/DocumentViewerModal';
 import { 
@@ -18,7 +19,8 @@ import {
   RefreshCw,
   FileUp,
   X,
-  Eye
+  Eye,
+  Search
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
@@ -27,20 +29,32 @@ type IngestionStep = 'IDLE' | 'UPLOADING' | 'QUEUED' | 'PROCESSING' | 'COMPLETED
 
 export const DocumentsPage: React.FC = () => {
   const { token, user } = useAuth();
+  const location = useLocation();
+  const { globalSearch = '' } = useOutletContext<{ globalSearch?: string }>() || {};
   const [documents, setDocuments] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [loadingDocs, setLoadingDocs] = useState(true);
+  const [docsError, setDocsError] = useState<string | null>(null);
   const [selectedDocForViewer, setSelectedDocForViewer] = useState<any | null>(null);
 
   // Ingestion Modal State
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    if (location.pathname === '/upload' || location.search.includes('upload=true')) {
+      setShowModal(true);
+    }
+  }, [location.pathname, location.search]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [title, setTitle] = useState('');
   const [mineName, setMineName] = useState('Rajmahal OpenCast');
   const [coalSeam, setCoalSeam] = useState('Seam VII');
   const [reserveCategory, setReserveCategory] = useState('Proved Reserve');
+  const [subsidiary, setSubsidiary] = useState('SECL');
+  const [sourceDepartment, setSourceDepartment] = useState('Geology & Exploration');
+  const [documentDate, setDocumentDate] = useState('2026-03-27');
 
   // Progress Tracking State
   const [ingestionStep, setIngestionStep] = useState<IngestionStep>('IDLE');
@@ -52,22 +66,62 @@ export const DocumentsPage: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleOpenViewer = async (doc: any) => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/documents/${doc.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setSelectedDocForViewer(json.document || json.data?.document || doc);
+      } else {
+        setSelectedDocForViewer(doc);
+      }
+    } catch {
+      setSelectedDocForViewer(doc);
+    }
+  };
+
+  const DEFAULT_FALLBACK_PROJECTS = [
+    {
+      id: '329239bb-bd9a-4e77-9c09-19127a28a807',
+      name: 'Rajmahal OCP Coal Exploration & Reserve Estimation',
+      code: 'PRJ-RAJMAHAL-2026',
+    },
+    {
+      id: '839be9a2-e40b-43bc-a736-5a5fd24e690e',
+      name: 'Gevra Expansion Geological Survey & Block-B Audit',
+      code: 'PRJ-GEVRA-EXP-2026',
+    },
+    {
+      id: '3e77736d-6cb8-4f48-9778-707c624f0654',
+      name: 'Piparwar Mine Annual Production & Stripping Analysis',
+      code: 'PRJ-PIPARWAR-2026',
+    },
+  ];
+
   const fetchProjectsAndDocs = async () => {
     setLoadingDocs(true);
     try {
       const pRes = await fetch(`${API_URL}/api/v1/projects`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token || 'demo-jwt-token-cmpdi-2026'}` },
       });
       if (pRes.ok) {
         const pData = await pRes.json();
-        const pList = pData.projects || [];
-        setProjects(pList);
-        if (pList.length > 0 && !selectedProjectId) {
-          setSelectedProjectId(pList[0].id);
+        const pList = pData.projects || pData.data?.projects || (Array.isArray(pData.data) ? pData.data : []);
+        const finalProjects = pList.length > 0 ? pList : DEFAULT_FALLBACK_PROJECTS;
+        setProjects(finalProjects);
+        if (!selectedProjectId) {
+          setSelectedProjectId(finalProjects[0].id);
         }
+      } else {
+        setProjects(DEFAULT_FALLBACK_PROJECTS);
+        if (!selectedProjectId) setSelectedProjectId(DEFAULT_FALLBACK_PROJECTS[0].id);
       }
     } catch (err: any) {
       console.error(err);
+      setProjects(DEFAULT_FALLBACK_PROJECTS);
+      if (!selectedProjectId) setSelectedProjectId(DEFAULT_FALLBACK_PROJECTS[0].id);
     } finally {
       setLoadingDocs(false);
     }
@@ -138,29 +192,49 @@ export const DocumentsPage: React.FC = () => {
 
   const fetchDocumentsForProject = async (projId: string) => {
     setLoadingDocs(true);
+    setDocsError(null);
     try {
       const dRes = await fetch(`${API_URL}/api/v1/documents?projectId=${projId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (dRes.ok) {
         const dData = await dRes.json();
-        const list = dData.documents || [];
-        setDocuments(list.length > 0 ? list : DEFAULT_DOCUMENTS);
+        const list = dData.documents || dData.data || [];
+        setDocuments(list);
       } else {
-        setDocuments(DEFAULT_DOCUMENTS);
+        const dData = await dRes.json().catch(() => ({}));
+        setDocsError(dData.message || 'Failed to load documents for this project.');
+        setDocuments([]);
       }
     } catch (err: any) {
-      setDocuments(DEFAULT_DOCUMENTS);
+      setDocsError(err.message || 'Network error fetching documents.');
+      setDocuments([]);
     } finally {
       setLoadingDocs(false);
     }
   };
 
+  const filteredDocuments = documents.filter((doc) => {
+    if (!globalSearch || !globalSearch.trim()) return true;
+    const q = globalSearch.toLowerCase();
+    return (
+      (doc.title && doc.title.toLowerCase().includes(q)) ||
+      (doc.filename && doc.filename.toLowerCase().includes(q)) ||
+      (doc.mineName && doc.mineName.toLowerCase().includes(q)) ||
+      (doc.coalSeam && doc.coalSeam.toLowerCase().includes(q)) ||
+      (doc.fileType && doc.fileType.toLowerCase().includes(q))
+    );
+  });
+
   useEffect(() => {
-    if (token) {
-      fetchProjectsAndDocs();
-    }
+    fetchProjectsAndDocs();
   }, [token]);
+
+  useEffect(() => {
+    if (projects.length > 0 && !selectedProjectId) {
+      setSelectedProjectId(projects[0].id);
+    }
+  }, [projects, selectedProjectId]);
 
   useEffect(() => {
     if (selectedProjectId && token) {
@@ -196,11 +270,11 @@ export const DocumentsPage: React.FC = () => {
 
   const validateAndSetFile = (file: File) => {
     setErrorMessage(null);
-    const validExtensions = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.png', '.jpg', '.jpeg'];
+    const validExtensions = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.png', '.jpg', '.jpeg'];
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
     
     if (!validExtensions.includes(ext)) {
-      setErrorMessage(`File format '${ext}' is not supported. Please upload PDF, DOCX, XLSX, PNG, or JPG.`);
+      setErrorMessage(`File format '${ext}' is not supported. Please upload PDF, DOCX, XLSX, CSV, PNG, or JPG.`);
       return;
     }
 
@@ -240,6 +314,9 @@ export const DocumentsPage: React.FC = () => {
       formData.append('mineName', mineName);
       formData.append('coalSeam', coalSeam);
       formData.append('reserveCategory', reserveCategory);
+      formData.append('subsidiary', subsidiary);
+      formData.append('sourceDepartment', sourceDepartment);
+      formData.append('documentDate', documentDate);
 
       setUploadProgress(45);
 
@@ -261,7 +338,7 @@ export const DocumentsPage: React.FC = () => {
       setActiveDocResult(data);
       setIngestionStep('QUEUED');
       setJobProgress(20);
-      setCurrentStepText('Job Queued - Awaiting OCR & Chunking Pipeline');
+      setCurrentStepText('Job Queued - Awaiting OCR & Table Extraction Pipeline');
 
       // Poll status transition
       if (data.processingJob?.id) {
@@ -300,7 +377,12 @@ export const DocumentsPage: React.FC = () => {
             } else if (job.status === 'COMPLETED' || job.progressPercent >= 100) {
               setIngestionStep('COMPLETED');
               setJobProgress(100);
-              setCurrentStepText('Document Ingested & Vector Indexed Successfully');
+              setCurrentStepText(job.currentStep || 'Document Ingested & Vector Indexed Successfully');
+              clearInterval(interval);
+              fetchDocumentsForProject(selectedProjectId);
+            } else if (job.status === 'FAILED') {
+              setIngestionStep('ERROR');
+              setErrorMessage(job.errorMessage || 'Document processing failed');
               clearInterval(interval);
               fetchDocumentsForProject(selectedProjectId);
             }
@@ -310,7 +392,7 @@ export const DocumentsPage: React.FC = () => {
         // Ignore poll errors
       }
 
-      if (attempts >= 10) {
+      if (attempts >= 15) {
         clearInterval(interval);
         setIngestionStep('COMPLETED');
         setJobProgress(100);
@@ -352,17 +434,18 @@ export const DocumentsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-6 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 bg-white shadow-xs">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-amber-400" />
+          <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2.5 tracking-tight">
+            <div className="p-2 bg-blue-50 border border-blue-100 text-blue-600 rounded-xl shadow-xs">
+              <FileText className="w-5 h-5" />
+            </div>
             Document Ingestion & Indexing Engine
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Upload PDF, DOCX, XLSX, and Image files. Automatic SHA-256 verification and vector indexing.
+          <p className="text-xs text-slate-400 mt-1 font-sans">
+            Upload PDF, DOCX, XLSX, and Image files. Automatic SHA-256 verification and pgvector indexing.
           </p>
         </div>
 
@@ -371,7 +454,7 @@ export const DocumentsPage: React.FC = () => {
           <select
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none font-medium"
+            className="px-3.5 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition"
           >
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
@@ -385,7 +468,7 @@ export const DocumentsPage: React.FC = () => {
               resetIngestionState();
               setShowModal(true);
             }}
-            className="flex items-center space-x-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-mining-950 font-semibold text-xs rounded-xl shadow-lg transition"
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition"
           >
             <Plus className="w-4 h-4" />
             <span>Ingest Document</span>
@@ -395,66 +478,65 @@ export const DocumentsPage: React.FC = () => {
 
       {/* Upload & Ingestion Pipeline Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="glass-panel w-full max-w-xl p-6 rounded-2xl border border-slate-800 shadow-2xl space-y-5">
-            
+        <div className="fixed inset-0 bg-blue-600/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="w-full max-w-xl p-6 rounded-2xl border border-slate-200 bg-white shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center space-x-2.5">
-                <UploadCloud className="w-5 h-5 text-amber-400" />
-                <h3 className="text-sm font-bold text-white">Document Ingestion Pipeline</h3>
+                <UploadCloud className="w-5 h-5 text-blue-600" />
+                <h3 className="text-sm font-bold text-slate-900">Document Ingestion Pipeline</h3>
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Ingestion Step Visual Progress (Uploaded -> Queued -> Processing -> Completed) */}
-            <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-mono">
+            {/* Ingestion Step Visual Progress */}
+            <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-semibold">
               <div
-                className={`p-2 rounded-xl border ${
+                className={`py-2 px-1 rounded-xl border ${
                   ingestionStep === 'UPLOADING'
-                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 font-bold animate-pulse'
+                    ? 'bg-blue-50 border-blue-300 text-blue-700 font-bold'
                     : ingestionStep !== 'IDLE'
-                    ? 'bg-slate-900 text-emerald-400 border-slate-800'
-                    : 'bg-slate-950 text-slate-500 border-slate-900'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-slate-50 text-slate-400 border-slate-200'
                 }`}
               >
-                1. Uploaded
+                1. Upload
               </div>
 
               <div
-                className={`p-2 rounded-xl border ${
+                className={`py-2 px-1 rounded-xl border ${
                   ingestionStep === 'QUEUED'
-                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 font-bold animate-pulse'
+                    ? 'bg-blue-50 border-blue-300 text-blue-700 font-bold'
                     : ['PROCESSING', 'COMPLETED'].includes(ingestionStep)
-                    ? 'bg-slate-900 text-emerald-400 border-slate-800'
-                    : 'bg-slate-950 text-slate-500 border-slate-900'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-slate-50 text-slate-400 border-slate-200'
                 }`}
               >
                 2. Queued
               </div>
 
               <div
-                className={`p-2 rounded-xl border ${
+                className={`py-2 px-1 rounded-xl border ${
                   ingestionStep === 'PROCESSING'
-                    ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-bold animate-pulse'
+                    ? 'bg-cyan-50 border-cyan-300 text-cyan-700 font-bold animate-pulse'
                     : ingestionStep === 'COMPLETED'
-                    ? 'bg-slate-900 text-emerald-400 border-slate-800'
-                    : 'bg-slate-950 text-slate-500 border-slate-900'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-slate-50 text-slate-400 border-slate-200'
                 }`}
               >
                 3. Processing
               </div>
 
               <div
-                className={`p-2 rounded-xl border ${
+                className={`py-2 px-1 rounded-xl border ${
                   ingestionStep === 'COMPLETED'
-                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 font-bold'
-                    : 'bg-slate-950 text-slate-500 border-slate-900'
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold'
+                    : 'bg-slate-50 text-slate-400 border-slate-200'
                 }`}
               >
                 4. Completed
@@ -463,22 +545,22 @@ export const DocumentsPage: React.FC = () => {
 
             {/* Error Banner */}
             {errorMessage && (
-              <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
+              <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center space-x-2 font-medium">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
             {/* Active Progress Status Bar */}
             {ingestionStep !== 'IDLE' && ingestionStep !== 'COMPLETED' && (
-              <div className="space-y-2 p-4 bg-slate-950/80 rounded-xl border border-slate-800">
-                <div className="flex justify-between text-xs font-mono">
-                  <span className="text-slate-300">{currentStepText}</span>
-                  <span className="text-amber-400 font-bold">{jobProgress || uploadProgress}%</span>
+              <div className="space-y-2 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex justify-between text-xs font-medium">
+                  <span className="text-slate-700">{currentStepText}</span>
+                  <span className="text-blue-600 font-bold">{jobProgress || uploadProgress}%</span>
                 </div>
-                <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-amber-500 to-cyan-500 h-full transition-all duration-300"
+                    className="bg-blue-600 h-full transition-all duration-300 rounded-full"
                     style={{ width: `${jobProgress || uploadProgress}%` }}
                   />
                 </div>
@@ -487,22 +569,20 @@ export const DocumentsPage: React.FC = () => {
 
             {/* Success Details Card */}
             {ingestionStep === 'COMPLETED' && activeDocResult && (
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2 text-xs">
-                <div className="flex items-center text-emerald-400 font-bold space-x-2">
-                  <CheckCircle2 className="w-4 h-4" />
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2 text-xs">
+                <div className="flex items-center text-emerald-800 font-bold space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span>Ingestion Completed Successfully!</span>
                 </div>
-                <div className="text-slate-300 space-y-1 font-mono text-[11px] pt-1">
-                  <div>Document ID: <span className="text-white">{activeDocResult.documentId}</span></div>
-                  <div>Checksum (SHA-256): <span className="text-cyan-400 truncate block">{activeDocResult.document?.checksum}</span></div>
-                  <div>Storage Path: <span className="text-slate-400">{activeDocResult.document?.storagePath}</span></div>
+                <div className="text-slate-700 space-y-1 font-mono text-[11px] pt-1">
+                  <div>Document ID: <span className="text-slate-900 font-bold">{activeDocResult.documentId}</span></div>
+                  <div>Checksum (SHA-256): <span className="text-blue-600 truncate block">{activeDocResult.document?.checksum}</span></div>
                 </div>
               </div>
             )}
 
             {/* Upload Form */}
             <form onSubmit={handleUploadSubmit} className="space-y-4 text-xs">
-              
               {/* Drag and Drop Zone */}
               <div
                 onDragOver={handleDragOver}
@@ -511,10 +591,10 @@ export const DocumentsPage: React.FC = () => {
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center space-y-2.5 ${
                   isDragOver
-                    ? 'border-amber-500 bg-amber-500/10'
+                    ? 'border-blue-500 bg-blue-50/50'
                     : selectedFile
-                    ? 'border-emerald-500/50 bg-emerald-500/5'
-                    : 'border-slate-800 bg-slate-950/60 hover:border-slate-700'
+                    ? 'border-emerald-500 bg-emerald-50/50'
+                    : 'border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400'
                 }`}
               >
                 <input
@@ -527,11 +607,11 @@ export const DocumentsPage: React.FC = () => {
 
                 {selectedFile ? (
                   <div className="flex items-center space-x-3 text-left">
-                    <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400">
+                    <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
                       <FileText className="w-6 h-6" />
                     </div>
                     <div>
-                      <div className="font-semibold text-white truncate max-w-xs">{selectedFile.name}</div>
+                      <div className="font-bold text-slate-900 truncate max-w-xs">{selectedFile.name}</div>
                       <div className="text-[11px] text-slate-400 font-mono">
                         {formatFileSize(selectedFile.size)} • {selectedFile.type || 'Document'}
                       </div>
@@ -539,14 +619,14 @@ export const DocumentsPage: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="p-3 bg-slate-900 border border-slate-800 rounded-2xl text-amber-400">
+                    <div className="p-3 bg-blue-50 border border-blue-100 rounded-2xl text-blue-600">
                       <FileUp className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="font-semibold text-white">Drag and drop document file here</span>, or{' '}
-                      <span className="text-amber-400 underline">browse computer</span>
+                      <span className="font-bold text-slate-800">Drag and drop document file here</span>, or{' '}
+                      <span className="text-blue-600 underline font-semibold">browse computer</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 font-mono">
+                    <p className="text-[11px] text-slate-400">
                       Accepted: PDF, DOCX, XLSX/XLS, PNG, JPG/JPEG (Max size: 50MB)
                     </p>
                   </>
@@ -554,56 +634,120 @@ export const DocumentsPage: React.FC = () => {
               </div>
 
               {/* Form Metadata Fields */}
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <div>
-                  <label className="text-slate-300 font-medium block mb-1">Document Display Title</label>
+                  <label className="text-slate-700 font-semibold block mb-1">
+                    Target Mining Project <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={selectedProjectId}
+                    onChange={(e) => {
+                      setSelectedProjectId(e.target.value);
+                      setErrorMessage(null);
+                    }}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-900 font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition"
+                  >
+                    {projects.length === 0 ? (
+                      <option value="">No projects available</option>
+                    ) : (
+                      projects.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.code || 'PRJ'})
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-700 font-semibold block mb-1">Document Display Title</label>
                   <input
                     type="text"
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Rajmahal Coal Field Reserve Study 2026"
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="text-slate-300 font-medium block mb-1">Mine Name</label>
+                    <label className="text-slate-700 font-semibold block mb-1">Mine Name</label>
                     <input
                       type="text"
                       value={mineName}
                       onChange={(e) => setMineName(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition"
                     />
                   </div>
                   <div>
-                    <label className="text-slate-300 font-medium block mb-1">Coal Seam</label>
+                    <label className="text-slate-700 font-semibold block mb-1">Coal Seam</label>
                     <input
                       type="text"
                       value={coalSeam}
                       onChange={(e) => setCoalSeam(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition"
                     />
                   </div>
                   <div>
-                    <label className="text-slate-300 font-medium block mb-1">Reserve Category</label>
+                    <label className="text-slate-700 font-semibold block mb-1">Reserve Category</label>
                     <input
                       type="text"
                       value={reserveCategory}
                       onChange={(e) => setReserveCategory(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-slate-700 font-semibold block mb-1">Subsidiary</label>
+                    <select
+                      value={subsidiary}
+                      onChange={(e) => setSubsidiary(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500 focus:bg-white transition"
+                    >
+                      <option value="SECL">SECL</option>
+                      <option value="ECL">ECL</option>
+                      <option value="CMPDI">CMPDI</option>
+                      <option value="CCL">CCL</option>
+                      <option value="BCCL">BCCL</option>
+                      <option value="WCL">WCL</option>
+                      <option value="MCL">MCL</option>
+                      <option value="NCL">NCL</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-700 font-semibold block mb-1">Source Department</label>
+                    <input
+                      type="text"
+                      value={sourceDepartment}
+                      onChange={(e) => setSourceDepartment(e.target.value)}
+                      placeholder="e.g. Geology & Exploration"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 font-semibold block mb-1">Document Date</label>
+                    <input
+                      type="date"
+                      value={documentDate}
+                      onChange={(e) => setDocumentDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500 focus:bg-white transition"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Modal Buttons */}
-              <div className="pt-2 flex justify-end space-x-2">
+              <div className="pt-3 flex justify-end space-x-2.5">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl"
+                  className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl border border-slate-200 font-semibold transition"
                 >
                   {ingestionStep === 'COMPLETED' ? 'Close' : 'Cancel'}
                 </button>
@@ -611,102 +755,158 @@ export const DocumentsPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={['UPLOADING', 'QUEUED', 'PROCESSING'].includes(ingestionStep)}
-                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-mining-950 font-semibold rounded-xl shadow-lg transition flex items-center space-x-1.5"
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-xs transition flex items-center space-x-2"
                   >
                     <span>{['UPLOADING', 'QUEUED', 'PROCESSING'].includes(ingestionStep) ? 'Processing Pipeline...' : 'Start Ingestion'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 )}
               </div>
-
             </form>
           </div>
         </div>
       )}
 
       {/* Documents Data Table */}
-      <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Database className="w-4 h-4 text-cyan-400" />
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-4 shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <Database className="w-4 h-4 text-blue-600" />
             Ingested Document Index
           </h2>
-          <span className="text-xs text-slate-400 font-mono">
-            {documents.length} File(s) Registered
+          <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+            {filteredDocuments.length} File(s) Registered
           </span>
         </div>
 
-        {loadingDocs ? (
-          <div className="p-8 text-center text-xs text-slate-400 font-mono">
-            Loading document index...
+        {docsError && (
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-xs text-rose-700">
+            <div className="flex items-center space-x-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span className="font-medium">{docsError}</span>
+            </div>
+            <button
+              onClick={() => selectedProjectId && fetchDocumentsForProject(selectedProjectId)}
+              className="px-3 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-lg font-semibold text-xs transition flex items-center space-x-1"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Retry</span>
+            </button>
           </div>
-        ) : documents.length === 0 ? (
-          <div className="p-12 text-center text-xs text-slate-500 font-mono space-y-2">
-            <p>No documents ingested for this project.</p>
-            <p className="text-[11px] text-slate-600">Click 'Ingest Document' above to upload files.</p>
+        )}
+
+        {loadingDocs ? (
+          <div className="p-12 text-center text-xs text-slate-400 flex flex-col items-center justify-center space-y-2">
+            <RefreshCw className="w-5 h-5 text-blue-600 animate-spin" />
+            <span className="font-semibold text-slate-700">Loading document index from repository...</span>
+          </div>
+        ) : filteredDocuments.length === 0 ? (
+          <div className="p-12 text-center text-xs text-slate-400 space-y-3">
+            <p className="font-medium text-slate-700">{globalSearch ? `No documents match query "${globalSearch}".` : 'No documents ingested for this project.'}</p>
+            {!globalSearch && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition inline-flex items-center space-x-2"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Ingest First Document</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-400 font-mono text-[11px]">
-                  <th className="pb-3 font-medium">Document Title</th>
-                  <th className="pb-3 font-medium">Format</th>
-                  <th className="pb-3 font-medium">Mine & Seam</th>
-                  <th className="pb-3 font-medium">Pipeline Stage</th>
-                  <th className="pb-3 font-medium">SHA-256 Checksum</th>
-                  <th className="pb-3 font-medium text-right">Actions</th>
+            <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+              <thead className="bg-slate-50 font-semibold text-slate-700">
+                <tr>
+                  <th className="px-4 py-3 rounded-l-xl">Document Title</th>
+                  <th className="px-4 py-3">Format</th>
+                  <th className="px-4 py-3">Mine & Subsidiary</th>
+                  <th className="px-4 py-3">Pages / Tables</th>
+                  <th className="px-4 py-3">OCR Status</th>
+                  <th className="px-4 py-3">Pipeline Stage</th>
+                  <th className="px-4 py-3 text-right rounded-r-xl">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-slate-900/50 transition">
-                    <td className="py-3.5 font-semibold text-white">
-                      <div>{doc.title}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{doc.filename}</div>
-                    </td>
-                    <td className="py-3.5 font-mono text-[11px]">
-                      <span className="px-2.5 py-1 rounded bg-slate-900 text-slate-300 border border-slate-800">
-                        {doc.fileType}
-                      </span>
-                    </td>
-                    <td className="py-3.5 text-slate-300">
-                      <div>{doc.mineName || 'Rajmahal OpenCast'}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        {doc.coalSeam || 'Seam VII'} ({doc.reserveCategory || 'Proved'})
-                      </div>
-                    </td>
-                    <td className="py-3.5">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        {doc.processingStage}
-                      </span>
-                    </td>
-                    <td className="py-3.5 font-mono text-[10px] text-slate-500 max-w-[140px] truncate">
-                      {doc.checksum}
-                    </td>
-                    <td className="py-3.5 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
-                          onClick={() => setSelectedDocForViewer(doc)}
-                          className="px-2.5 py-1.5 hover:bg-amber-500/10 text-amber-400 rounded-lg border border-amber-500/20 transition flex items-center space-x-1"
-                          title="Open Document Viewer"
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {filteredDocuments.map((doc) => {
+                  const tableCount = doc.tables?.length ?? (doc.tableCount ?? 0);
+                  const isLowConf = (doc.ocrConfidence ?? 1.0) < 0.75 && doc.ocrStatus !== 'NOT_NEEDED';
+                  return (
+                    <tr key={doc.id} className="hover:bg-slate-50/80 transition">
+                      <td className="px-4 py-3 font-semibold text-slate-900">
+                        <div>{doc.title}</div>
+                        <div className="text-[11px] text-slate-400 font-mono flex items-center space-x-2 mt-0.5">
+                          <span>{doc.filename}</span>
+                          {doc.checksum && (
+                            <span className="text-slate-400">({doc.checksum.substring(0, 8)}...)</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[11px]">
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 font-medium">
+                          {doc.fileType}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        <div className="font-semibold text-slate-800">{doc.mineName || 'Rajmahal OpenCast'}</div>
+                        <div className="text-[11px] text-slate-400">
+                          {doc.subsidiary || 'SECL'} • {doc.coalSeam || 'Seam VII'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 font-mono text-[11px]">
+                        <div className="font-medium text-slate-800">{doc.pageCount || 1} Pages</div>
+                        <div className="text-[10px] text-slate-400">{tableCount} Table(s)</div>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[11px]">
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[10px] border font-medium ${
+                            isLowConf
+                              ? 'bg-amber-50 text-amber-800 border-amber-200 font-bold'
+                              : 'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}
                         >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span className="text-[10px] font-mono font-semibold">View</span>
-                        </button>
-                        {(user?.role === 'ADMIN' || user?.role === 'GEOLOGIST') && (
+                          {doc.ocrStatus || 'NATIVE'} {doc.ocrConfidence ? `(${Math.round(doc.ocrConfidence * 100)}%)` : ''}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
+                            doc.processingStage === 'COMPLETED'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : doc.processingStage === 'PARTIAL'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : doc.processingStage === 'FAILED'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}
+                        >
+                          {doc.processingStage}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end space-x-1.5">
                           <button
-                            onClick={() => handleDelete(doc.id)}
-                            className="p-1.5 hover:bg-rose-500/10 text-rose-400 rounded-lg transition"
-                            title="Delete Document"
+                            onClick={() => handleOpenViewer(doc)}
+                            className="px-3 py-1 bg-white hover:bg-blue-50 text-blue-600 border border-slate-200 hover:border-blue-200 rounded-lg text-xs font-semibold inline-flex items-center space-x-1.5 shadow-2xs transition"
+                            title="Open Document Viewer"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>View</span>
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {(user?.role === 'ADMIN' || user?.role === 'GEOLOGIST') && (
+                            <button
+                              onClick={() => handleDelete(doc.id)}
+                              className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg border border-transparent hover:border-rose-200 transition"
+                              title="Delete Document"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

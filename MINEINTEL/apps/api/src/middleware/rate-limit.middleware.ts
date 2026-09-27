@@ -109,9 +109,10 @@ export const authRateLimiter = createRateLimiter({
   message: 'Too many authentication attempts. Please try again after 15 minutes.',
 });
 
-// Upload Rate Limiter: 30 uploads per 10 minutes
+// Upload Rate Limiter: 100 uploads per 10 minutes (skips GET requests like polling and reading)
 export const uploadRateLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
-  max: 30,
+  max: 100,
   message: 'Document upload rate limit exceeded. Please try again later.',
+  skip: (req) => req.method === 'GET' || req.method === 'OPTIONS' || env.NODE_ENV === 'test',
 });

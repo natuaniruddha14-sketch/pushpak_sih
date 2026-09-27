@@ -38,7 +38,7 @@ async function main() {
       organizationId: org.id,
       email: 'admin@cmpdi.in',
       name: 'Dr. Rajesh Sharma',
-      passwordHash: '$2b$10$e8W/Xl5d.u1bC1Xn9a0e6uPq.5nF.zY/9.Z2G7Z1a5k6c7d8e9f0g', // Hashed mock
+      passwordHash: '$2b$10$8/IN4Lc7Lo5z/vRzrZlOGezOuCm4R6./RkMN9cEl33lbMIZy5wF/.', // Password123!
       role: UserRole.ADMIN,
     },
   });
@@ -48,7 +48,7 @@ async function main() {
       organizationId: org.id,
       email: 'geologist@cmpdi.in',
       name: 'Ananya Sen',
-      passwordHash: '$2b$10$e8W/Xl5d.u1bC1Xn9a0e6uPq.5nF.zY/9.Z2G7Z1a5k6c7d8e9f0g',
+      passwordHash: '$2b$10$8/IN4Lc7Lo5z/vRzrZlOGezOuCm4R6./RkMN9cEl33lbMIZy5wF/.', // Password123!
       role: UserRole.GEOLOGIST,
     },
   });
@@ -58,7 +58,7 @@ async function main() {
       organizationId: org.id,
       email: 'engineer@cmpdi.in',
       name: 'Vikram Verma',
-      passwordHash: '$2b$10$e8W/Xl5d.u1bC1Xn9a0e6uPq.5nF.zY/9.Z2G7Z1a5k6c7d8e9f0g',
+      passwordHash: '$2b$10$8/IN4Lc7Lo5z/vRzrZlOGezOuCm4R6./RkMN9cEl33lbMIZy5wF/.', // Password123!
       role: UserRole.MINING_ENGINEER,
     },
   });

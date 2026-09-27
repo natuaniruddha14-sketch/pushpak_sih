@@ -13,7 +13,10 @@ export class AuthController {
       const parseResult = registerSchema.safeParse(req.body);
       if (!parseResult.success) {
         res.status(400).json({
+          success: false,
+          data: null,
           error: 'Validation Error',
+          message: 'Invalid registration credentials provided',
           details: parseResult.error.flatten().fieldErrors,
         });
         return;
@@ -24,7 +27,12 @@ export class AuthController {
       // Check if email already registered
       const existingUser = await UserRepository.findByEmail(email);
       if (existingUser) {
-        res.status(409).json({ error: 'Conflict', message: 'User email is already registered' });
+        res.status(409).json({
+          success: false,
+          data: null,
+          error: 'Conflict',
+          message: 'User email is already registered',
+        });
         return;
       }
 
@@ -73,21 +81,31 @@ export class AuthController {
         ipAddress: req.ip || req.socket.remoteAddress,
       });
 
+      const userPayload = {
+        id: newUser.id,
+        organizationId: newUser.organizationId,
+        email: newUser.email,
+        name: newUser.name,
+        role: newUser.role,
+        createdAt: newUser.createdAt.toISOString(),
+        updatedAt: newUser.updatedAt.toISOString(),
+      };
+
       res.status(201).json({
+        success: true,
+        data: { token, user: userPayload },
         token,
-        user: {
-          id: newUser.id,
-          organizationId: newUser.organizationId,
-          email: newUser.email,
-          name: newUser.name,
-          role: newUser.role,
-          createdAt: newUser.createdAt.toISOString(),
-          updatedAt: newUser.updatedAt.toISOString(),
-        },
+        user: userPayload,
+        message: 'User registered successfully',
       });
     } catch (err: any) {
       console.error('[Auth Error Register]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message || 'Failed to register user' });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message || 'Failed to register user',
+      });
     }
   }
 
@@ -96,7 +114,10 @@ export class AuthController {
       const parseResult = loginSchema.safeParse(req.body);
       if (!parseResult.success) {
         res.status(400).json({
+          success: false,
+          data: null,
           error: 'Validation Error',
+          message: 'Invalid email or password payload',
           details: parseResult.error.flatten().fieldErrors,
         });
         return;
@@ -107,14 +128,24 @@ export class AuthController {
       // Find user
       const user = await UserRepository.findByEmail(email);
       if (!user) {
-        res.status(401).json({ error: 'Unauthorized', message: 'Invalid email or password' });
+        res.status(401).json({
+          success: false,
+          data: null,
+          error: 'Unauthorized',
+          message: 'Invalid email or password',
+        });
         return;
       }
 
       // Verify bcrypt password hash
       const isPasswordValid = await comparePassword(password, user.passwordHash);
       if (!isPasswordValid) {
-        res.status(401).json({ error: 'Unauthorized', message: 'Invalid email or password' });
+        res.status(401).json({
+          success: false,
+          data: null,
+          error: 'Unauthorized',
+          message: 'Invalid email or password',
+        });
         return;
       }
 
@@ -137,27 +168,36 @@ export class AuthController {
         ipAddress: req.ip || req.socket.remoteAddress,
       });
 
+      const userPayload = {
+        id: user.id,
+        organizationId: user.organizationId,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+      };
+
       res.status(200).json({
+        success: true,
+        data: { token, user: userPayload },
         token,
-        user: {
-          id: user.id,
-          organizationId: user.organizationId,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          createdAt: user.createdAt.toISOString(),
-          updatedAt: user.updatedAt.toISOString(),
-        },
+        user: userPayload,
+        message: 'Successfully authenticated',
       });
     } catch (err: any) {
       console.error('[Auth Error Login]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message || 'Failed to authenticate user' });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message || 'Failed to authenticate user',
+      });
     }
   }
 
   static async logout(req: Request, res: Response): Promise<void> {
     try {
-      // In stateless JWT auth, logout confirms client token discard
       const authReq = req as AuthenticatedRequest;
       if (authReq.user) {
         await AuditLogRepository.create({
@@ -170,38 +210,66 @@ export class AuthController {
         });
       }
 
-      res.status(200).json({ message: 'Successfully logged out' });
+      res.status(200).json({
+        success: true,
+        data: null,
+        message: 'Successfully logged out',
+      });
     } catch (err: any) {
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
   static async getCurrentUser(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({ error: 'Unauthorized', message: 'User is not authenticated' });
+        res.status(401).json({
+          success: false,
+          data: null,
+          error: 'Unauthorized',
+          message: 'User is not authenticated',
+        });
         return;
       }
 
       const user = await UserRepository.findById(req.user.id);
       if (!user) {
-        res.status(404).json({ error: 'Not Found', message: 'User profile not found' });
+        res.status(404).json({
+          success: false,
+          data: null,
+          error: 'Not Found',
+          message: 'User profile not found',
+        });
         return;
       }
 
+      const userPayload = {
+        id: user.id,
+        organizationId: user.organizationId,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+      };
+
       res.status(200).json({
-        user: {
-          id: user.id,
-          organizationId: user.organizationId,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          createdAt: user.createdAt.toISOString(),
-          updatedAt: user.updatedAt.toISOString(),
-        },
+        success: true,
+        data: { user: userPayload },
+        user: userPayload,
       });
     } catch (err: any) {
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 }

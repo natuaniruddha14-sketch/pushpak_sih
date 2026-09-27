@@ -18,6 +18,12 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('*'),
   MAX_FILE_SIZE_MB: z.string().transform((val) => parseInt(val, 10)).default('50'),
   STORAGE_DIR: z.string().optional(),
+  DIRECT_URL: z.string().optional(),
+  STORAGE_PROVIDER: z.enum(['local', 'supabase']).default('local'),
+  SUPABASE_URL: z.string().optional(),
+  SUPABASE_ANON_KEY: z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SUPABASE_STORAGE_BUCKET: z.string().default('mineintel-documents'),
   RATE_LIMIT_WINDOW_MS: z.string().transform((val) => parseInt(val, 10)).default('60000'), // 1 minute
   RATE_LIMIT_MAX_REQUESTS: z.string().transform((val) => parseInt(val, 10)).default('200'),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.string().transform((val) => parseInt(val, 10)).default('15'),

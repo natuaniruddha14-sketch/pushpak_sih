@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '@mineintel/shared-types';
-import { Cpu, ShieldCheck, Lock, Mail, User, AlertCircle, ArrowRight, KeyRound } from 'lucide-react';
+import { Pickaxe, ShieldCheck, Lock, Mail, User, AlertCircle, ArrowRight, KeyRound, ArrowLeft } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false);
@@ -42,44 +42,68 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-mining-900 text-slate-100 flex flex-col justify-center items-center p-6 relative overflow-hidden">
-      {/* Background Decorative Gradients */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f9fa] text-slate-900 relative overflow-hidden w-full font-sans antialiased selection:bg-blue-600 selection:text-white px-4 py-8">
+      {/* Ambient background glow effects matching landing page */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[350px] bg-gradient-to-tr from-blue-200/40 via-indigo-100/30 to-amber-100/30 blur-3xl rounded-full pointer-events-none -z-10" />
+      <div className="absolute bottom-10 right-1/4 w-[300px] h-[300px] bg-blue-100/30 rounded-full blur-2xl pointer-events-none -z-10" />
+
+      {/* Back to landing page link */}
+      <div className="w-full max-w-md mb-4 flex justify-between items-center z-10">
+        <Link
+          to="/landing"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Landing Page</span>
+        </Link>
+        <span className="text-[11px] font-medium text-slate-400">Government Portal</span>
+      </div>
 
       {/* Main Auth Container */}
-      <div className="w-full max-w-md space-y-6 z-10">
-        
-        {/* Header Branding */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-amber-400 mb-2">
-            <Cpu className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
-            MINEINTEL <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono">AI PLATFORM</span>
-          </h1>
-          <p className="text-xs text-slate-400">Mining Document Intelligence & Reporting System</p>
+      <div className="w-full max-w-md z-10 flex flex-col items-center">
+        {/* Logo + Branding */}
+        <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 text-white shadow-md mb-4 hover:scale-105 transition-transform">
+          <Pickaxe className="w-6 h-6 text-amber-700" />
         </div>
 
-        {/* Card Form */}
-        <div className="glass-panel p-8 rounded-2xl border border-slate-800 shadow-2xl space-y-6">
-          
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 text-center">
+          CER<span className="text-blue-600">A</span>
+        </h1>
+
+        <div className="flex items-center gap-2 mt-1 mb-6">
+          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 font-semibold uppercase tracking-wider">
+            Enterprise AI Platform
+          </span>
+        </div>
+
+        {/* Clean White Card */}
+        <div className="relative w-full rounded-3xl bg-white/90 backdrop-blur-md shadow-xl border border-slate-200/80 p-7 sm:p-8 flex flex-col transition-all">
           {/* Mode Switcher Tabs */}
-          <div className="grid grid-cols-2 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
+          <div className="grid grid-cols-2 p-1 bg-slate-100/90 rounded-2xl mb-6 border border-slate-200/60">
             <button
               type="button"
-              onClick={() => { setIsRegister(false); setError(null); }}
-              className={`py-2 text-xs font-medium rounded-lg transition ${
-                !isRegister ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              onClick={() => {
+                setIsRegister(false);
+                setError(null);
+              }}
+              className={`py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 ${
+                !isRegister
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-800'
               }`}
             >
               Sign In
             </button>
             <button
               type="button"
-              onClick={() => { setIsRegister(true); setError(null); }}
-              className={`py-2 text-xs font-medium rounded-lg transition ${
-                isRegister ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              onClick={() => {
+                setIsRegister(true);
+                setError(null);
+              }}
+              className={`py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 ${
+                isRegister
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-800'
               }`}
             >
               Create Account
@@ -88,82 +112,69 @@ export const LoginPage: React.FC = () => {
 
           {/* Error Alert */}
           {error && (
-            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center space-x-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-center space-x-2.5 mb-5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            
+          <form onSubmit={handleSubmit} className="flex flex-col w-full gap-3.5">
             {/* Name Field (Register mode) */}
             {isRegister && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-300">Full Name</label>
-                <div className="relative">
-                  <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Dr. Rajesh Sharma"
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50 transition"
-                  />
-                </div>
+              <div className="relative">
+                <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Full Name"
+                  className="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all"
+                />
               </div>
             )}
 
             {/* Email Field */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-300">Email Address</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="user@cmpdi.in"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50 transition"
-                />
-              </div>
+            <div className="relative">
+              <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email Address"
+                className="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all"
+              />
             </div>
 
             {/* Password Field */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-300">Password</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50 transition"
-                />
-              </div>
+            <div className="relative">
+              <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                className="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all"
+              />
             </div>
 
             {/* Role Selection (Register mode) */}
             {isRegister && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-300">Platform Role</label>
-                <div className="relative">
-                  <ShieldCheck className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as UserRole)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500/50 transition appearance-none"
-                  >
-                    <option value={UserRole.ADMIN}>ADMIN (System Administrator)</option>
-                    <option value={UserRole.ANALYST}>ANALYST (Mining Analyst)</option>
-                    <option value={UserRole.GEOLOGIST}>GEOLOGIST (Coal Exploration Specialist)</option>
-                    <option value={UserRole.MINING_ENGINEER}>MINING ENGINEER (Operations Engineer)</option>
-                    <option value={UserRole.VIEWER}>VIEWER (Read-only Executive)</option>
-                  </select>
-                </div>
+              <div className="relative">
+                <ShieldCheck className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as UserRole)}
+                  className="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all appearance-none"
+                >
+                  <option value={UserRole.ADMIN}>ADMIN (System Administrator)</option>
+                  <option value={UserRole.ANALYST}>ANALYST (Mining Analyst)</option>
+                  <option value={UserRole.GEOLOGIST}>GEOLOGIST (Coal Exploration Specialist)</option>
+                  <option value={UserRole.MINING_ENGINEER}>MINING ENGINEER (Operations Engineer)</option>
+                  <option value={UserRole.VIEWER}>VIEWER (Read-only Executive)</option>
+                </select>
               </div>
             )}
 
@@ -171,52 +182,56 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-mining-950 font-semibold text-xs rounded-xl shadow-lg transition flex items-center justify-center space-x-2 disabled:opacity-50 mt-2"
+              className="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>{loading ? 'Authenticating...' : isRegister ? 'Register Account' : 'Sign In'}</span>
+              <span>{loading ? 'Authenticating...' : isRegister ? 'Create Account' : 'Sign In'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
-          {/* Quick Demo Pre-seeded Login Accounts */}
-          <div className="border-t border-slate-800/80 pt-4 space-y-2">
-            <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-              <span>Quick Demo Accounts (Pre-seeded):</span>
+          {/* Quick Demo Accounts */}
+          <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
+            <div className="text-xs text-slate-400 font-medium flex items-center justify-center gap-1.5">
+              <KeyRound className="w-3.5 h-3.5 text-blue-600" />
+              <span>Quick Demo Accounts</span>
             </div>
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="flex flex-wrap justify-center gap-2">
               <button
                 type="button"
                 onClick={() => handleDemoFill('admin@cmpdi.in')}
-                className="px-2.5 py-1 bg-slate-950/80 hover:bg-slate-800 text-slate-300 text-[11px] rounded-lg border border-slate-800 font-mono transition"
+                className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-mono rounded-full border border-slate-200/80 transition-all"
               >
                 admin@cmpdi.in
               </button>
               <button
                 type="button"
                 onClick={() => handleDemoFill('geologist@cmpdi.in')}
-                className="px-2.5 py-1 bg-slate-950/80 hover:bg-slate-800 text-slate-300 text-[11px] rounded-lg border border-slate-800 font-mono transition"
+                className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-mono rounded-full border border-slate-200/80 transition-all"
               >
                 geologist@cmpdi.in
               </button>
               <button
                 type="button"
                 onClick={() => handleDemoFill('engineer@cmpdi.in')}
-                className="px-2.5 py-1 bg-slate-950/80 hover:bg-slate-800 text-slate-300 text-[11px] rounded-lg border border-slate-800 font-mono transition"
+                className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-mono rounded-full border border-slate-200/80 transition-all"
               >
                 engineer@cmpdi.in
               </button>
             </div>
           </div>
-
         </div>
 
         {/* Footer info */}
-        <p className="text-center text-[11px] text-slate-500 font-mono">
-          Protected by JWT Token Authentication & Bcrypt Hashing
-        </p>
-
+        <div className="mt-8 flex flex-col items-center text-center space-y-1.5">
+          <p className="text-slate-400 text-xs">
+            Trusted by <span className="font-semibold text-slate-700">CMPDI & Coal India</span> exploration divisions
+          </p>
+          <p className="text-[11px] text-slate-400 font-mono">
+            Government Grade Security • DGMS Compliant
+          </p>
+        </div>
       </div>
     </div>
   );
 };
+

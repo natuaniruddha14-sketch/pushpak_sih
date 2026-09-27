@@ -79,6 +79,7 @@ export const TopicsPage: React.FC = () => {
 
   // States
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [topics, setTopics] = useState<TopicItem[]>([]);
   const [wordCloud, setWordCloud] = useState<WordCloudItem[]>([]);
   const [summaryNote, setSummaryNote] = useState<string>(
@@ -117,8 +118,9 @@ export const TopicsPage: React.FC = () => {
         const json = await wcRes.json();
         setWordCloud(json.wordCloud || []);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load topic analytics:', err);
+      setError(err.message || 'Failed to load topic analytics from server.');
     } finally {
       setLoading(false);
     }
@@ -136,7 +138,7 @@ export const TopicsPage: React.FC = () => {
       filename: docTitle,
       processingStage: 'INDEXED',
       pageCount: 30,
-      mineName: selectedProject !== 'All' ? selectedProject : 'MineIntel Repository',
+      mineName: selectedProject !== 'All' ? selectedProject : 'CERA Repository',
       pages: Array.from({ length: 30 }, (_, i) => ({
         pageNumber: i + 1,
         rawText:
@@ -181,7 +183,7 @@ export const TopicsPage: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `MineIntel_Topic_Taxonomy_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `CERA_Topic_Taxonomy_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -190,13 +192,13 @@ export const TopicsPage: React.FC = () => {
   return (
     <div className="space-y-6 pb-12">
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400">
+            <div className="p-2 bg-blue-50 border border-blue-100 text-blue-600 rounded-xl shadow-xs">
               <BookOpen className="w-5 h-5" />
             </div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Topic Identification & Knowledge Taxonomy</h1>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Topic Identification & Knowledge Taxonomy</h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">
             Automated topic modeling, frequency distribution, representative document evidence, and keyword taxonomy.
@@ -206,45 +208,61 @@ export const TopicsPage: React.FC = () => {
         <div className="flex items-center space-x-3">
           <button
             onClick={fetchTopicData}
-            className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 font-semibold text-xs rounded-xl flex items-center space-x-2 transition"
+            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs rounded-xl shadow-xs transition flex items-center space-x-2"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh Topics</span>
+            <span>Refresh</span>
           </button>
 
           <button
             onClick={exportTopicsCSV}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl flex items-center space-x-2 transition"
+            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs flex items-center space-x-2 transition"
           >
-            <Download className="w-4 h-4" />
-            <span>Export Taxonomy (CSV)</span>
+            <Download className="w-3.5 h-3.5" />
+            <span>Export CSV</span>
           </button>
         </div>
       </div>
 
+      {error && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex items-center justify-between shadow-xs">
+          <div className="flex items-center space-x-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+            <span className="font-medium">{error}</span>
+          </div>
+          <button
+            onClick={fetchTopicData}
+            className="px-3 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-lg font-semibold text-xs transition flex items-center space-x-1.5"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>Retry</span>
+          </button>
+        </div>
+      )}
+
       {/* Filter Bar */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center space-x-3 flex-1 min-w-[240px]">
-          <div className="relative w-full max-w-sm">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center space-x-2.5 flex-1 min-w-[240px]">
+          <div className="relative w-full max-w-md">
             <input
               type="text"
               placeholder="Search topics, keywords, or descriptions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500/50"
+              className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl pl-9 pr-3.5 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition"
             />
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Project Filter */}
           <div>
-            <label className="text-[10px] text-slate-400 font-mono block mb-1">Target Project</label>
+            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Target Project</label>
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500/50"
+              className="bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition"
             >
               <option value="All">All Projects</option>
               <option value="Gevra OCP">Gevra OCP</option>
@@ -257,11 +275,11 @@ export const TopicsPage: React.FC = () => {
 
           {/* Document Collection Filter */}
           <div>
-            <label className="text-[10px] text-slate-400 font-mono block mb-1">Document Collection</label>
+            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Document Collection</label>
             <select
               value={selectedCollection}
               onChange={(e) => setSelectedCollection(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500/50"
+              className="bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500 focus:bg-white transition"
             >
               <option value="All">All Ingested Documents</option>
               <option value="Geological Reports">Geological Reports (GR)</option>
@@ -274,54 +292,55 @@ export const TopicsPage: React.FC = () => {
       </div>
 
       {/* Explicit Frequency Definition Disclaimer Banner */}
-      <div className="bg-slate-900/90 border border-cyan-500/30 rounded-2xl p-4 flex items-center space-x-3 text-cyan-300 text-xs">
-        <Info className="w-5 h-5 flex-shrink-0 text-cyan-400" />
-        <div>
-          <span className="font-bold">Topic Frequency Definition:</span> {summaryNote}
+      <div className="bg-blue-50/80 border border-blue-200/80 rounded-2xl p-4 flex items-center space-x-3 text-blue-900 text-xs shadow-xs">
+        <Info className="w-5 h-5 flex-shrink-0 text-blue-600" />
+        <div className="leading-relaxed">
+          <span className="font-bold text-blue-950">Topic Frequency Definition:</span> {summaryNote}
         </div>
       </div>
 
       {/* Section 1: Topic Cards */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-white flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-amber-400" />
+          <h2 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-blue-600" />
             <span>Dominant Mining Topics ({filteredTopics.length})</span>
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredTopics.map((topic) => (
             <div
               key={topic.id}
-              className="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 space-y-4 transition flex flex-col justify-between"
+              className="bg-white border border-slate-200/80 hover:border-slate-300 rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-md transition flex flex-col justify-between"
             >
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-bold text-white tracking-tight">{topic.name}</h3>
-                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">{topic.description}</p>
+                    <h3 className="text-sm font-bold text-slate-900 tracking-tight">{topic.name}</h3>
+                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">{topic.description}</p>
                   </div>
-                  <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center flex-shrink-0">
-                    <span className="text-[10px] text-slate-400 block font-mono">Mentions</span>
-                    <span className="text-sm font-extrabold text-amber-400 font-mono">{topic.topicFrequency}</span>
+                  <div className="px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-xl text-center flex-shrink-0">
+                    <span className="text-[10px] text-blue-600 block font-semibold uppercase tracking-wider">Mentions</span>
+                    <span className="text-sm font-bold text-blue-700 font-mono">{topic.topicFrequency}</span>
                   </div>
                 </div>
 
                 {/* Frequency Note Disclaimer */}
-                <div className="text-[10px] text-slate-400 bg-slate-950/80 border border-slate-800 rounded-xl p-2 font-mono">
-                  💡 {topic.frequencyNote || 'Frequency represents document chunk mentions, not operational priority.'}
+                <div className="text-xs text-amber-900 bg-amber-50 border border-amber-200/80 rounded-xl p-3 leading-relaxed flex items-start space-x-2">
+                  <span className="text-sm">💡</span>
+                  <span>{topic.frequencyNote || 'Frequency represents document chunk mentions, not operational priority.'}</span>
                 </div>
 
                 {/* Keywords List */}
                 <div className="space-y-1.5">
-                  <span className="text-[11px] text-slate-400 font-mono block">Associated Keywords:</span>
+                  <span className="text-xs font-semibold text-slate-700 block">Associated Keywords:</span>
                   <div className="flex flex-wrap gap-1.5">
                     {topic.keywords.map((kw, i) => (
                       <span
                         key={i}
-                        className="px-2 py-0.5 bg-slate-950 border border-slate-800 text-slate-300 rounded-lg text-[10px] font-mono"
+                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-lg text-xs font-medium transition cursor-default"
                       >
                         #{kw}
                       </span>
@@ -330,20 +349,20 @@ export const TopicsPage: React.FC = () => {
                 </div>
 
                 {/* Representative Documents */}
-                <div className="space-y-2 pt-2 border-t border-slate-800">
-                  <span className="text-[11px] text-slate-400 font-mono block">Representative Documents:</span>
+                <div className="space-y-2 pt-3 border-t border-slate-100">
+                  <span className="text-xs font-semibold text-slate-700 block">Representative Documents:</span>
                   <div className="space-y-1.5">
                     {topic.representativeDocuments.map((doc, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between text-xs bg-slate-950 border border-slate-800/80 rounded-xl p-2"
+                        className="flex items-center justify-between text-xs bg-slate-50 border border-slate-200/80 hover:border-slate-300 rounded-xl p-2.5 transition"
                       >
                         <div className="flex items-center space-x-2 truncate">
-                          <FileText className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                          <span className="text-slate-200 font-sans font-medium truncate">{doc.title}</span>
+                          <FileText className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                          <span className="text-slate-800 font-medium truncate">{doc.title}</span>
                         </div>
-                        <span className="text-[10px] font-mono text-cyan-400 flex-shrink-0 ml-2">
-                          {doc.mentionCount} mentions
+                        <span className="text-xs font-bold text-slate-600 font-mono bg-white px-2 py-0.5 rounded-md border border-slate-200 flex-shrink-0 ml-2">
+                          {doc.mentionCount}x
                         </span>
                       </div>
                     ))}
@@ -352,27 +371,27 @@ export const TopicsPage: React.FC = () => {
 
                 {/* Representative Pages */}
                 {topic.representativePages && topic.representativePages.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t border-slate-800">
-                    <span className="text-[11px] text-slate-400 font-mono block">Representative Evidence Pages:</span>
+                  <div className="space-y-2 pt-3 border-t border-slate-100">
+                    <span className="text-xs font-semibold text-slate-700 block">Representative Evidence Pages:</span>
                     <div className="space-y-2">
                       {topic.representativePages.map((page, pIdx) => (
                         <div
                           key={pIdx}
-                          className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 text-xs space-y-1.5"
+                          className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-xs space-y-2"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-amber-400 font-bold font-mono text-[11px]">
+                            <span className="text-blue-700 font-bold text-xs">
                               {page.documentTitle} (p. {page.pageNumber})
                             </span>
                             <button
                               onClick={() => handleOpenRepresentativePage(page.documentTitle, page.pageNumber, page.snippet)}
-                              className="px-2 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded text-[10px] font-sans font-semibold inline-flex items-center space-x-1 transition"
+                              className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold inline-flex items-center space-x-1 shadow-xs transition"
                             >
                               <ExternalLink className="w-3 h-3" />
-                              <span>View Page</span>
+                              <span>View</span>
                             </button>
                           </div>
-                          <p className="text-[11px] text-slate-300 italic bg-slate-900/60 p-2 rounded-lg border border-slate-800/60 leading-relaxed">
+                          <p className="text-xs text-slate-600 italic bg-white p-2.5 rounded-lg border border-slate-200/80 leading-relaxed">
                             "{page.snippet}"
                           </p>
                         </div>
@@ -387,39 +406,39 @@ export const TopicsPage: React.FC = () => {
       </div>
 
       {/* Section 2: Topic Frequency Chart */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-              <BarChart3 className="w-4 h-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+              <BarChart3 className="w-4 h-4 text-blue-600" />
               <span>Topic Occurrence Frequency Chart</span>
             </h3>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-xs text-slate-400 mt-0.5">
               Total chunk mentions across {selectedProject} collection (Density Metric)
             </p>
           </div>
-          <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-lg border border-cyan-500/20">
-            Recharts Visualization
+          <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+            Recharts Distribution
           </span>
         </div>
 
-        <div className="h-64 w-full">
+        <div className="h-64 w-full pt-2">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 10 }} />
-              <YAxis stroke="#64748b" tick={{ fontSize: 10 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 11 }} />
+              <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl text-xs space-y-1">
-                        <div className="font-bold text-white">{data.fullName}</div>
-                        <div className="text-amber-400 font-mono">
-                          Chunk Mentions Frequency: <span className="font-extrabold">{data.topicFrequency}</span>
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xl text-xs space-y-1">
+                        <div className="font-bold text-slate-900">{data.fullName}</div>
+                        <div className="text-blue-600 font-medium">
+                          Chunk Mentions: <span className="font-bold">{data.topicFrequency}</span>
                         </div>
-                        <div className="text-[10px] text-slate-400 italic">
+                        <div className="text-[10px] text-slate-400 italic mt-1">
                           Note: Indicates mention density across index, not priority rank.
                         </div>
                       </div>
@@ -428,27 +447,39 @@ export const TopicsPage: React.FC = () => {
                   return null;
                 }}
               />
-              <Bar dataKey="topicFrequency" name="Chunk Mentions" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="topicFrequency" name="Chunk Mentions" fill="#0f172a" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Section 3: Keyword Cloud */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-4 shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
-            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-              <Tag className="w-4 h-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+              <Tag className="w-4 h-4 text-blue-600" />
               <span>Mining Keyword Cloud</span>
             </h3>
-            <p className="text-xs text-slate-400">Term frequencies and representative page references</p>
+            <p className="text-xs text-slate-400 mt-0.5">Term frequencies and representative page references</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2.5 p-4 bg-slate-950 border border-slate-800 rounded-2xl">
+        <div className="flex flex-wrap gap-2.5 p-4 bg-slate-50 border border-slate-200/80 rounded-xl">
           {wordCloud.map((wc, idx) => {
-            const fontSize = Math.max(11, Math.min(20, Math.round(wc.value / 8)));
+            const fontSize = Math.max(12, Math.min(18, Math.round(wc.value / 8)));
+            const isReserve = wc.category === 'reserve';
+            const isGeology = wc.category === 'geology';
+            const isMining = wc.category === 'mining';
+
+            const bgClass = isReserve
+              ? 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-200'
+              : isGeology
+              ? 'bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border-cyan-200'
+              : isMining
+              ? 'bg-purple-50 hover:bg-purple-100 text-purple-800 border-purple-200'
+              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200';
+
             return (
               <div
                 key={idx}
@@ -457,37 +488,11 @@ export const TopicsPage: React.FC = () => {
                     handleOpenRepresentativePage(wc.representativePage.documentTitle, wc.representativePage.pageNumber);
                   }
                 }}
-                className="px-3 py-1.5 rounded-xl border font-mono transition hover:scale-105 cursor-pointer flex items-center space-x-2"
-                style={{
-                  fontSize: `${fontSize}px`,
-                  backgroundColor:
-                    wc.category === 'reserve'
-                      ? '#f59e0b15'
-                      : wc.category === 'geology'
-                      ? '#06b6d415'
-                      : wc.category === 'mining'
-                      ? '#8b5cf615'
-                      : '#10b98115',
-                  borderColor:
-                    wc.category === 'reserve'
-                      ? '#f59e0b40'
-                      : wc.category === 'geology'
-                      ? '#06b6d440'
-                      : wc.category === 'mining'
-                      ? '#8b5cf640'
-                      : '#10b98140',
-                  color:
-                    wc.category === 'reserve'
-                      ? '#f59e0b'
-                      : wc.category === 'geology'
-                      ? '#06b6d4'
-                      : wc.category === 'mining'
-                      ? '#8b5cf6'
-                      : '#10b981',
-                }}
+                className={`px-3 py-1.5 rounded-xl border font-sans font-medium transition hover:scale-105 cursor-pointer flex items-center space-x-2 shadow-2xs ${bgClass}`}
+                style={{ fontSize: `${fontSize}px` }}
               >
                 <span>{wc.text}</span>
-                <span className="text-[10px] bg-slate-900 px-1.5 py-0.5 rounded-md font-sans text-slate-300 border border-slate-800">
+                <span className="text-[11px] bg-white px-1.5 py-0.5 rounded-md font-bold text-slate-700 border border-slate-200/80 shadow-2xs">
                   {wc.value}
                 </span>
               </div>
@@ -497,43 +502,43 @@ export const TopicsPage: React.FC = () => {
       </div>
 
       {/* Section 4: Source Documents Matrix */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-4 shadow-sm">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
-            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-              <FileSpreadsheet className="w-4 h-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+              <FileSpreadsheet className="w-4 h-4 text-blue-600" />
               <span>Representative Source Documents per Topic</span>
             </h3>
-            <p className="text-xs text-slate-400">Indexed documents mapped to extracted domain topics</p>
+            <p className="text-xs text-slate-400 mt-0.5">Indexed documents mapped to extracted domain topics</p>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950 text-slate-400 font-mono text-[10px] uppercase border-b border-slate-800">
+          <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+            <thead className="bg-slate-50 font-semibold text-slate-700">
               <tr>
-                <th className="p-3">Topic</th>
-                <th className="p-3">Representative Document</th>
-                <th className="p-3">Project Block</th>
-                <th className="p-3">Mentions</th>
-                <th className="p-3 text-right">Document Action</th>
+                <th className="px-4 py-3 rounded-l-xl">Topic</th>
+                <th className="px-4 py-3">Representative Document</th>
+                <th className="px-4 py-3">Project Block</th>
+                <th className="px-4 py-3">Mentions</th>
+                <th className="px-4 py-3 text-right rounded-r-xl">Document Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono">
+            <tbody className="divide-y divide-slate-100 bg-white">
               {topics.flatMap((t) =>
                 t.representativeDocuments.map((doc, dIdx) => (
-                  <tr key={`${t.id}-${dIdx}`} className="hover:bg-slate-800/40 transition">
-                    <td className="p-3 font-sans font-bold text-white">{t.name}</td>
-                    <td className="p-3 text-amber-400 font-bold">{doc.title}</td>
-                    <td className="p-3 text-cyan-400">{doc.project}</td>
-                    <td className="p-3 text-slate-300">{doc.mentionCount} mentions</td>
-                    <td className="p-3 text-right">
+                  <tr key={`${t.id}-${dIdx}`} className="hover:bg-slate-50/80 transition">
+                    <td className="px-4 py-3 font-semibold text-slate-900">{t.name}</td>
+                    <td className="px-4 py-3 text-blue-600 font-medium">{doc.title}</td>
+                    <td className="px-4 py-3 text-slate-600">{doc.project}</td>
+                    <td className="px-4 py-3 font-bold text-slate-800">{doc.mentionCount}x</td>
+                    <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => handleOpenRepresentativePage(doc.title, 1)}
-                        className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-[10px] font-sans font-semibold inline-flex items-center space-x-1 transition"
+                        className="px-3 py-1 bg-white hover:bg-blue-50 text-blue-600 border border-slate-200 hover:border-blue-200 rounded-lg text-xs font-semibold inline-flex items-center space-x-1.5 shadow-2xs transition"
                       >
                         <ExternalLink className="w-3 h-3" />
-                        <span>Open Document</span>
+                        <span>Open</span>
                       </button>
                     </td>
                   </tr>

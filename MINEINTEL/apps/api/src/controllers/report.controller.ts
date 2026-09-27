@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
-import { prisma } from '../lib/prisma';
+import { prisma, isDatabaseConnected } from '../lib/prisma';
+import { ReportRepository } from '../repositories/report.repository';
+import { StructuredRecordRepository } from '../repositories/structured-record.repository';
 
 // In-memory generated report cache for fast download retrieval fallback
 const reportMemoryStore = new Map<string, any>();
@@ -12,18 +14,11 @@ export class ReportController {
   static async listReports(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { projectId } = req.query;
-      const whereFilter = projectId && typeof projectId === 'string' ? { projectId } : {};
+      const pId = projectId && typeof projectId === 'string' ? projectId : undefined;
 
-      const reports = await prisma.report.findMany({
-        where: whereFilter,
-        include: {
-          project: { select: { name: true, code: true } },
-          sources: { include: { document: { select: { id: true, title: true, filename: true } } } },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+      const reports = await ReportRepository.listByProject(pId);
 
-      // Fallback sample reports if database yields empty set
+      // Fallback sample reports if database & memStore yield empty set
       if (reports.length === 0) {
         const sampleReports = [
           {
@@ -55,14 +50,31 @@ export class ReportController {
             sourcesCount: 3,
           },
         ];
-        res.status(200).json({ reports: sampleReports });
+        res.status(200).json({
+          success: true,
+          data: sampleReports,
+          reports: sampleReports,
+          message: 'Reports retrieved successfully',
+          error: null,
+        });
         return;
       }
 
-      res.status(200).json({ reports });
+      res.status(200).json({
+        success: true,
+        data: reports,
+        reports,
+        message: 'Reports retrieved successfully',
+        error: null,
+      });
     } catch (err: any) {
       console.error('[Report Error List]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
@@ -75,17 +87,18 @@ export class ReportController {
 
       // Check memory cache first
       if (reportMemoryStore.has(id)) {
-        res.status(200).json({ report: reportMemoryStore.get(id) });
+        const cached = reportMemoryStore.get(id);
+        res.status(200).json({
+          success: true,
+          data: cached,
+          report: cached,
+          message: 'Report retrieved successfully',
+          error: null,
+        });
         return;
       }
 
-      const report = await prisma.report.findUnique({
-        where: { id },
-        include: {
-          project: true,
-          sources: { include: { document: true } },
-        },
-      });
+      const report = await ReportRepository.findById(id);
 
       if (!report) {
         // Return default mock report structure if ID is sample
@@ -97,18 +110,40 @@ export class ReportController {
             period: '2024-25',
             fileFormat: 'PDF',
           });
-          res.status(200).json({ report: generatedMock });
+          res.status(200).json({
+            success: true,
+            data: generatedMock,
+            report: generatedMock,
+            message: 'Report retrieved successfully',
+            error: null,
+          });
           return;
         }
 
-        res.status(404).json({ error: 'Not Found', message: 'Report not found' });
+        res.status(404).json({
+          success: false,
+          data: null,
+          error: 'Not Found',
+          message: 'Report not found',
+        });
         return;
       }
 
-      res.status(200).json({ report });
+      res.status(200).json({
+        success: true,
+        data: report,
+        report,
+        message: 'Report retrieved successfully',
+        error: null,
+      });
     } catch (err: any) {
       console.error('[Report Error GetById]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
@@ -137,13 +172,10 @@ export class ReportController {
       const reportId = `rep-gen-${Date.now()}`;
 
       // Pipeline Step 1 & 2: Project & Period selection verified
-      // Pipeline Step 3: Retrieve structured data from DB if available
+      // Pipeline Step 3: Retrieve structured data
       let dbStructuredRecords: any[] = [];
       if (projectId) {
-        dbStructuredRecords = await prisma.structuredRecord.findMany({
-          where: { projectId },
-          take: 10,
-        });
+        dbStructuredRecords = await StructuredRecordRepository.listByProject(projectId);
       }
 
       // Pipeline Step 4 & 5: Retrieve evidence & generate grounded report object
@@ -161,12 +193,20 @@ export class ReportController {
       reportMemoryStore.set(reportId, reportPayload);
 
       res.status(201).json({
-        message: 'Report generated successfully',
+        success: true,
+        data: reportPayload,
         report: reportPayload,
+        message: 'Report generated successfully',
+        error: null,
       });
     } catch (err: any) {
       console.error('[Report Error Generate]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
@@ -232,7 +272,12 @@ export class ReportController {
       res.send(Buffer.from(documentContent, 'utf-8'));
     } catch (err: any) {
       console.error('[Report Error Download]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 

@@ -3,21 +3,34 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { createProjectSchema } from '../schemas/project.schema';
 import { ProjectRepository } from '../repositories/project.repository';
 import { AuditLogRepository } from '../repositories/audit-log.repository';
-import { prisma } from '../lib/prisma';
 
 export class ProjectController {
   static async list(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({ error: 'Unauthorized', message: 'User is not authenticated' });
+        res.status(401).json({
+          success: false,
+          data: null,
+          error: 'Unauthorized',
+          message: 'User is not authenticated',
+        });
         return;
       }
 
       const projects = await ProjectRepository.listByOrganization(req.user.organizationId);
-      res.status(200).json({ projects });
+      res.status(200).json({
+        success: true,
+        data: { projects },
+        projects,
+      });
     } catch (err: any) {
       console.error('[Project Error List]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
@@ -27,33 +40,60 @@ export class ProjectController {
       const project = await ProjectRepository.findById(id);
 
       if (!project) {
-        res.status(404).json({ error: 'Not Found', message: 'Project not found' });
+        res.status(404).json({
+          success: false,
+          data: null,
+          error: 'Not Found',
+          message: 'Project not found',
+        });
         return;
       }
 
       if (req.user && project.organizationId !== req.user.organizationId) {
-        res.status(403).json({ error: 'Forbidden', message: 'Access to this project is denied' });
+        res.status(403).json({
+          success: false,
+          data: null,
+          error: 'Forbidden',
+          message: 'Access to this project is denied',
+        });
         return;
       }
 
-      res.status(200).json({ project });
+      res.status(200).json({
+        success: true,
+        data: { project },
+        project,
+      });
     } catch (err: any) {
       console.error('[Project Error GetById]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
   static async create(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({ error: 'Unauthorized', message: 'User is not authenticated' });
+        res.status(401).json({
+          success: false,
+          data: null,
+          error: 'Unauthorized',
+          message: 'User is not authenticated',
+        });
         return;
       }
 
       const parseResult = createProjectSchema.safeParse(req.body);
       if (!parseResult.success) {
         res.status(400).json({
+          success: false,
+          data: null,
           error: 'Validation Error',
+          message: 'Invalid project fields',
           details: parseResult.error.flatten().fieldErrors,
         });
         return;
@@ -64,7 +104,12 @@ export class ProjectController {
       // Check code collision
       const existing = await ProjectRepository.findByCode(code);
       if (existing) {
-        res.status(409).json({ error: 'Conflict', message: `Project code '${code}' already exists` });
+        res.status(409).json({
+          success: false,
+          data: null,
+          error: 'Conflict',
+          message: `Project code '${code}' already exists`,
+        });
         return;
       }
 
@@ -88,10 +133,20 @@ export class ProjectController {
         ipAddress: req.ip || req.socket.remoteAddress,
       });
 
-      res.status(201).json({ project });
+      res.status(201).json({
+        success: true,
+        data: { project },
+        project,
+        message: 'Project created successfully',
+      });
     } catch (err: any) {
       console.error('[Project Error Create]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
@@ -101,16 +156,26 @@ export class ProjectController {
       const project = await ProjectRepository.findById(id);
 
       if (!project) {
-        res.status(404).json({ error: 'Not Found', message: 'Project not found' });
+        res.status(404).json({
+          success: false,
+          data: null,
+          error: 'Not Found',
+          message: 'Project not found',
+        });
         return;
       }
 
       if (req.user && project.organizationId !== req.user.organizationId) {
-        res.status(403).json({ error: 'Forbidden', message: 'Access to this project is denied' });
+        res.status(403).json({
+          success: false,
+          data: null,
+          error: 'Forbidden',
+          message: 'Access to this project is denied',
+        });
         return;
       }
 
-      await prisma.project.delete({ where: { id } });
+      await ProjectRepository.delete(id);
 
       if (req.user) {
         await AuditLogRepository.create({
@@ -124,10 +189,20 @@ export class ProjectController {
         });
       }
 
-      res.status(200).json({ message: 'Project successfully deleted', id });
+      res.status(200).json({
+        success: true,
+        data: { id },
+        message: 'Project successfully deleted',
+        id,
+      });
     } catch (err: any) {
       console.error('[Project Error Delete]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 }

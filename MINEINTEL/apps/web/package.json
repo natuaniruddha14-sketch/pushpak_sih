@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@mineintel/shared-types": "*",
+    "@supabase/supabase-js": "^2.117.2",
     "@tanstack/react-query": "^5.66.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",

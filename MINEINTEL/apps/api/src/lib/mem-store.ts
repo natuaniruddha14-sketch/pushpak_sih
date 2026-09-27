@@ -59,12 +59,60 @@ export interface MemDocument {
   reserveCategory?: string | null;
   authoringBody?: string | null;
   reportYear?: number | null;
+  sourceDepartment?: string | null;
+  subsidiary?: string | null;
+  documentDate?: Date | null;
+  processingError?: string | null;
+  ocrConfidence?: number | null;
+  ocrStatus?: string | null;
+  tables?: any[];
   createdAt: Date;
   updatedAt: Date;
   uploader?: { id: string; name: string; email: string };
   pages?: any[];
   chunks?: any[];
   _count?: { pages: number; chunks: number; entities: number; structuredRecs: number };
+}
+
+export interface MemStructuredRecord {
+  id: string;
+  projectId: string;
+  documentId: string;
+  mineName: string;
+  blockName?: string | null;
+  coalSeam?: string | null;
+  provedReserveMt?: number | null;
+  indicatedReserveMt?: number | null;
+  inferredReserveMt?: number | null;
+  seamThicknessMeters?: number | null;
+  ashContentPercent?: number | null;
+  moisturePercent?: number | null;
+  volatileMatterPercent?: number | null;
+  grossCalorificValueKcal?: number | null;
+  strippingRatio?: number | null;
+  annualProductionMt?: number | null;
+  depthMeters?: number | null;
+  extractedData?: any;
+  createdAt: Date;
+  updatedAt: Date;
+  document?: { title: string; fileType?: string };
+}
+
+export interface MemProcessingJob {
+  id: string;
+  projectId: string;
+  documentId: string;
+  userId: string;
+  status: JobStatus;
+  progressPercent: number;
+  currentStep?: string | null;
+  errorMessage?: string | null;
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  document?: { title: string; fileType?: string };
+  user?: { name: string; email: string };
 }
 
 export interface MemAuditLog {
@@ -77,6 +125,35 @@ export interface MemAuditLog {
   details?: any;
   ipAddress?: string | null;
   createdAt: Date;
+  user?: { name: string; email: string };
+}
+
+export interface MemReport {
+  id: string;
+  projectId: string;
+  authorId: string;
+  title: string;
+  templateType: ReportTemplate;
+  status: JobStatus;
+  summaryText?: string | null;
+  storagePath?: string | null;
+  fileFormat: ReportFormat;
+  createdAt: Date;
+  updatedAt: Date;
+  author?: { name: string; email: string };
+  project?: { name: string; code?: string };
+  sources?: any[];
+}
+
+export interface MemQuerySession {
+  id: string;
+  projectId: string;
+  userId: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+  messages: any[];
+  user?: { name: string; email: string };
 }
 
 class InMemoryStore {
@@ -84,9 +161,12 @@ class InMemoryStore {
   users: Map<string, MemUser> = new Map();
   projects: Map<string, MemProject> = new Map();
   documents: Map<string, MemDocument> = new Map();
+  processingJobs: Map<string, MemProcessingJob> = new Map();
+  structuredRecords: Map<string, MemStructuredRecord> = new Map();
+  querySessions: Map<string, MemQuerySession> = new Map();
+  reports: Map<string, MemReport> = new Map();
   auditLogs: MemAuditLog[] = [];
-  querySessions: Map<string, any> = new Map();
-  reports: Map<string, any> = new Map();
+  documentChunks: Map<string, any[]> = new Map();
 
   private initialized = false;
 
@@ -104,7 +184,7 @@ class InMemoryStore {
     };
     this.organizations.set(defaultOrg.id, defaultOrg);
 
-    const defaultPasswordHash = await bcrypt.hash('admin123', 10);
+    const defaultPasswordHash = await bcrypt.hash('Password123!', 10);
 
     const preseededUsers: Partial<MemUser>[] = [
       { id: 'usr-admin-01', name: 'System Administrator', email: 'admin@cmpdi.in', role: UserRole.ADMIN },
@@ -145,6 +225,53 @@ class InMemoryStore {
       _count: { documents: 1, reports: 1, structuredRecs: 1 },
     };
     this.projects.set(defaultProject.id, defaultProject);
+
+    const defaultDoc: MemDocument = {
+      id: 'doc-gevra-2026',
+      projectId: defaultProject.id,
+      uploaderId: 'usr-admin-01',
+      title: 'Gevra OCP Expansion Geological Report 2026',
+      filename: 'Gevra_OCP_Expansion_Geological_Report_2026.pdf',
+      fileType: DocumentType.PDF,
+      fileSizeBytes: 14850000,
+      mimeType: 'application/pdf',
+      checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      storagePath: 'storage/Gevra_OCP_Expansion_Geological_Report_2026.pdf',
+      processingStage: ProcessingStage.INDEXED,
+      pageCount: 42,
+      chunkCount: 156,
+      mineName: 'Gevra OpenCast Project',
+      blockName: 'Block-B',
+      coalSeam: 'Seam V/VI/VII',
+      reserveCategory: 'Proved Reserve',
+      authoringBody: 'CMPDI Regional Institute-V',
+      reportYear: 2026,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      uploader: { id: 'usr-admin-01', name: 'System Administrator', email: 'admin@cmpdi.in' },
+      _count: { pages: 42, chunks: 156, entities: 12, structuredRecs: 1 },
+    };
+    this.documents.set(defaultDoc.id, defaultDoc);
+
+    const defaultRecord: MemStructuredRecord = {
+      id: 'rec-gevra-001',
+      projectId: defaultProject.id,
+      documentId: defaultDoc.id,
+      mineName: 'Gevra OpenCast Project',
+      blockName: 'Block-B West',
+      coalSeam: 'Seam V/VI/VII',
+      provedReserveMt: 425.80,
+      indicatedReserveMt: 85.20,
+      seamThicknessMeters: 18.4,
+      strippingRatio: 2.14,
+      annualProductionMt: 70.5,
+      grossCalorificValueKcal: 4650,
+      ashContentPercent: 34.2,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      document: { title: defaultDoc.title, fileType: 'PDF' },
+    };
+    this.structuredRecords.set(defaultRecord.id, defaultRecord);
   }
 }
 

@@ -223,7 +223,7 @@ class StructuredRetriever:
         },
         {
             "document_id": "doc-rajmahal-2026",
-            "document_name": "Rajmahal_Master_Exploration_Report.pdf",
+            "document_name": "Rajmahal_Master_Exploration_Report_2026.pdf",
             "page_number": 3,
             "page_id": "p-raj-03",
             "mine_name": "Rajmahal",
@@ -233,6 +233,45 @@ class StructuredRetriever:
             "seam_thickness_meters": 14.2,
             "gcv_kcal_kg": 4800,
             "content": "Rajmahal Coalfield geological resource stands at 1,250 MT in Seam III with average thickness 14.2m, ash content 24.5% to 32.0%, and GCV 4800 kcal/kg."
+        },
+        {
+            "document_id": "doc-singrauli-borewell",
+            "document_name": "Singrauli_Borehole_Lithology_Log.xlsx",
+            "page_number": 1,
+            "page_id": "p-sing-01",
+            "mine_name": "Singrauli",
+            "coal_seam": "Purewa / Turra Seam",
+            "proved_reserve_mt": 348.50,
+            "stripping_ratio": 2.14,
+            "seam_thickness_meters": 18.4,
+            "gcv_kcal_kg": 4650,
+            "content": "Borehole SB-42 in Singrauli Coalfield logged Purewa seam cumulative thickness at 18.4m with GCV grade G12 (4650 kcal/kg) and Turra seam at 14.5m with GCV 5120 kcal/kg."
+        },
+        {
+            "document_id": "doc-kusmunda-fy26",
+            "document_name": "Kusmunda_Dipka_Production_Quality_FY26.xlsx",
+            "page_number": 1,
+            "page_id": "p-kus-01",
+            "mine_name": "Kusmunda",
+            "coal_seam": "Lower Kusmunda Seam",
+            "proved_reserve_mt": 520.00,
+            "stripping_ratio": 1.78,
+            "seam_thickness_meters": 22.0,
+            "gcv_kcal_kg": 4554,
+            "content": "Kusmunda OpenCast Project achieved annual coal production of 52.01 Million Tonnes in FY26 at an overburden stripping ratio of 1.78 m3/t."
+        },
+        {
+            "document_id": "doc-dipka-fy26",
+            "document_name": "Kusmunda_Dipka_Production_Quality_FY26.xlsx",
+            "page_number": 1,
+            "page_id": "p-dip-01",
+            "mine_name": "Dipka",
+            "coal_seam": "Dipka Seam I & II",
+            "proved_reserve_mt": 380.00,
+            "stripping_ratio": 1.95,
+            "seam_thickness_meters": 16.5,
+            "gcv_kcal_kg": 4620,
+            "content": "Dipka OpenCast Sector recorded total coal production of 38.45 Million Tonnes in FY26 with a stripping ratio of 1.95 m3/t."
         }
     ]
 

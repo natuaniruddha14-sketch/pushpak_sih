@@ -1,12 +1,12 @@
-import { prisma } from '../lib/prisma';
+import { prisma, isDatabaseConnected } from '../lib/prisma';
 import { Document, Prisma, ProcessingStage } from '@prisma/client';
 import { memStore } from '../lib/mem-store';
 import crypto from 'crypto';
 
 export class DocumentRepository {
   static async findById(id: string): Promise<Document | null> {
-    try {
-      if (process.env.DATABASE_URL) {
+    if (isDatabaseConnected()) {
+      try {
         const d = await prisma.document.findUnique({
           where: { id },
           include: {
@@ -18,23 +18,22 @@ export class DocumentRepository {
           },
         });
         if (d) return d;
-      }
-    } catch (_err) {}
+      } catch (_err) {}
+    }
 
     await memStore.initializeDefaults();
     const doc = memStore.documents.get(id);
     if (doc) return doc as unknown as Document;
-    if (memStore.documents.size > 0) return Array.from(memStore.documents.values())[0] as unknown as Document;
     return null;
   }
 
   static async findByChecksum(checksum: string): Promise<Document | null> {
-    try {
-      if (process.env.DATABASE_URL) {
+    if (isDatabaseConnected()) {
+      try {
         const d = await prisma.document.findUnique({ where: { checksum } });
         if (d) return d;
-      }
-    } catch (_err) {}
+      } catch (_err) {}
+    }
 
     await memStore.initializeDefaults();
     for (const doc of memStore.documents.values()) {
@@ -46,11 +45,11 @@ export class DocumentRepository {
   }
 
   static async create(data: Prisma.DocumentCreateInput): Promise<Document> {
-    try {
-      if (process.env.DATABASE_URL) {
+    if (isDatabaseConnected()) {
+      try {
         return await prisma.document.create({ data });
-      }
-    } catch (_err) {}
+      } catch (_err) {}
+    }
 
     await memStore.initializeDefaults();
     const id = 'doc-' + crypto.randomUUID().substring(0, 8);
@@ -76,6 +75,13 @@ export class DocumentRepository {
       reserveCategory: data.reserveCategory ?? null,
       authoringBody: data.authoringBody ?? null,
       reportYear: data.reportYear ?? null,
+      sourceDepartment: (data as any).sourceDepartment ?? null,
+      subsidiary: (data as any).subsidiary ?? null,
+      documentDate: (data as any).documentDate ? new Date((data as any).documentDate) : null,
+      tables: (data as any).tables ?? [],
+      ocrStatus: (data as any).ocrStatus ?? 'NOT_NEEDED',
+      ocrConfidence: (data as any).ocrConfidence ?? 1.0,
+      pageCount: (data as any).pageCount ?? 1,
       createdAt: new Date(),
       updatedAt: new Date(),
       uploader: uploader ? { id: uploader.id, name: uploader.name, email: uploader.email } : undefined,
@@ -85,19 +91,39 @@ export class DocumentRepository {
     return docObj as unknown as Document;
   }
 
+  static async update(id: string, data: any): Promise<Document | null> {
+    if (isDatabaseConnected()) {
+      try {
+        const { pages, chunks, ...prismaData } = data;
+        return await prisma.document.update({
+          where: { id },
+          data: prismaData,
+        });
+      } catch (_err) {}
+    }
+
+    await memStore.initializeDefaults();
+    const doc = memStore.documents.get(id);
+    if (doc) {
+      Object.assign(doc, data, { updatedAt: new Date() });
+      return doc as unknown as Document;
+    }
+    return null;
+  }
+
   static async updateStage(
     id: string,
     processingStage: ProcessingStage,
     errorMessage?: string
-  ): Promise<Document> {
-    try {
-      if (process.env.DATABASE_URL) {
+  ): Promise<Document | null> {
+    if (isDatabaseConnected()) {
+      try {
         return await prisma.document.update({
           where: { id },
           data: { processingStage, errorMessage },
         });
-      }
-    } catch (_err) {}
+      } catch (_err) {}
+    }
 
     await memStore.initializeDefaults();
     const doc = memStore.documents.get(id);
@@ -105,24 +131,37 @@ export class DocumentRepository {
       doc.processingStage = processingStage;
       if (errorMessage) doc.errorMessage = errorMessage;
       doc.updatedAt = new Date();
+      return doc as unknown as Document;
     }
-    return doc as unknown as Document;
+    return null;
   }
 
   static async listByProject(projectId: string): Promise<Document[]> {
-    try {
-      if (process.env.DATABASE_URL) {
+    if (isDatabaseConnected()) {
+      try {
         return await prisma.document.findMany({
           where: { projectId },
           include: { uploader: { select: { name: true } } },
           orderBy: { createdAt: 'desc' },
         });
-      }
-    } catch (_err) {}
+      } catch (_err) {}
+    }
 
     await memStore.initializeDefaults();
     return Array.from(memStore.documents.values()).filter(
       (d) => d.projectId === projectId
     ) as unknown as Document[];
+  }
+
+  static async delete(id: string): Promise<boolean> {
+    if (isDatabaseConnected()) {
+      try {
+        await prisma.document.delete({ where: { id } });
+        return true;
+      } catch (_err) {}
+    }
+
+    await memStore.initializeDefaults();
+    return memStore.documents.delete(id);
   }
 }

@@ -14,14 +14,20 @@ class LocalOCREngine(OCREngine):
 
     def __init__(self, min_confidence_threshold: float = 0.70):
         super().__init__(min_confidence_threshold=min_confidence_threshold)
-        self._check_tesseract()
+        self.rapid_ocr = None
+        self._init_ocr_engines()
 
-    def _check_tesseract(self):
-        """Check if pytesseract and Tesseract binary are installed."""
+    def _init_ocr_engines(self):
+        """Initialize available OCR engines (RapidOCR / Tesseract)."""
+        try:
+            from rapidocr_onnxruntime import RapidOCR
+            self.rapid_ocr = RapidOCR()
+        except Exception:
+            self.rapid_ocr = None
+
         self.has_tesseract = False
         try:
             import pytesseract
-            # Quick check if tesseract binary is available
             pytesseract.get_tesseract_version()
             self.has_tesseract = True
         except Exception:
@@ -43,15 +49,50 @@ class LocalOCREngine(OCREngine):
         else:
             pil_image = image
 
-        # 1. Preprocess Image
-        processed_img = ImagePreprocessor.preprocess_image(pil_image)
-
         raw_text = ""
         confidence = 0.0
+        blocks_data = []
 
-        # 2. Perform OCR with Tesseract if available, otherwise high-fidelity OCR analyzer
-        if self.has_tesseract:
+        # 1. Primary Engine: RapidOCR (Self-contained ONNX deep learning OCR)
+        if self.rapid_ocr:
             try:
+                import numpy as np
+                rgb_img = pil_image.convert("RGB")
+                img_np = np.array(rgb_img)
+                ocr_res, _ = self.rapid_ocr(img_np)
+
+                if ocr_res:
+                    text_parts = []
+                    conf_scores = []
+                    for b_idx, item in enumerate(ocr_res):
+                        # item format: [box_points, text, confidence_str]
+                        box_pts = item[0]
+                        txt = str(item[1]).strip()
+                        c_val = float(item[2])
+                        if txt:
+                            text_parts.append(txt)
+                            conf_scores.append(c_val)
+                            # Compute [min_x, min_y, max_x, max_y]
+                            xs = [pt[0] for pt in box_pts]
+                            ys = [pt[1] for pt in box_pts]
+                            blocks_data.append({
+                                "block_index": b_idx + 1,
+                                "text": txt,
+                                "bbox": [round(min(xs), 1), round(min(ys), 1), round(max(xs), 1), round(max(ys), 1)],
+                                "confidence": round(c_val, 4),
+                                "needs_review": c_val < self.min_confidence_threshold,
+                            })
+
+                    raw_text = "\n".join(text_parts)
+                    confidence = (sum(conf_scores) / len(conf_scores)) if conf_scores else 0.0
+            except Exception as e:
+                raw_text = ""
+                confidence = 0.0
+
+        # 2. Secondary Engine: Tesseract
+        if not raw_text and self.has_tesseract:
+            try:
+                processed_img = ImagePreprocessor.preprocess_image(pil_image)
                 import pytesseract
                 from pytesseract import Output
                 data = pytesseract.image_to_data(processed_img, output_type=Output.DICT)
@@ -71,12 +112,15 @@ class LocalOCREngine(OCREngine):
                     confidence = (sum(conf_scores) / len(conf_scores)) / 100.0
                 else:
                     confidence = 0.50 if raw_text else 0.0
-            except Exception as e:
-                raw_text, confidence = self._fallback_image_ocr(processed_img)
-        else:
+            except Exception:
+                pass
+
+        # 3. Fallback analyzer if engines returned empty
+        if not raw_text:
+            processed_img = ImagePreprocessor.preprocess_image(pil_image)
             raw_text, confidence = self._fallback_image_ocr(processed_img)
 
-        # 3. Compute Metrics & Review Flag
+        # 4. Compute Metrics & Review Flag
         words = raw_text.split()
         word_count = len(words)
         char_count = len(raw_text)
@@ -93,8 +137,8 @@ class LocalOCREngine(OCREngine):
             metadata={
                 "document_id": document_id,
                 "page_number": page_number,
-                "engine": "LocalOCREngine",
-                "tesseract_active": self.has_tesseract,
+                "engine": "RapidOCR" if self.rapid_ocr else ("Tesseract" if self.has_tesseract else "LocalOCREngine"),
+                "blocks": blocks_data,
             }
         )
 

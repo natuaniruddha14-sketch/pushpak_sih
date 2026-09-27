@@ -8,7 +8,7 @@ export const AppLayout: React.FC = () => {
   const [globalSearch, setGlobalSearch] = useState('');
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans antialiased">
+    <div className="min-h-screen bg-[#f8f9fa] text-slate-900 flex font-sans antialiased">
       {/* Sidebar navigation */}
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
@@ -24,10 +24,11 @@ export const AppLayout: React.FC = () => {
           <Outlet context={{ globalSearch }} />
         </main>
 
-        <footer className="border-t border-slate-800/80 bg-slate-950/80 px-6 py-4 text-center text-xs text-slate-500 font-mono">
-          MINEINTEL AI — Enterprise Mining Document Intelligence & Reporting Platform • CMPDI / CIL
+        <footer className="border-t border-slate-200 bg-white px-6 py-4 text-center text-xs text-slate-400 font-sans">
+          CERA AI — Enterprise Mining Document Intelligence & Reporting Platform • CMPDI / CIL
         </footer>
       </div>
     </div>
   );
 };
+

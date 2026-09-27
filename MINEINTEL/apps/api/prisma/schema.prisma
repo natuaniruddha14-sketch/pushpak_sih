@@ -9,6 +9,7 @@ generator client {
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
   extensions = [pgvector(map: "vector")]
 }
 
@@ -35,13 +36,20 @@ enum DocumentType {
 
 enum ProcessingStage {
   UPLOADED
+  PROCESSING
+  OCR_REQUIRED
+  EXTRACTING
+  INDEXING
+  COMPLETED
+  PARTIAL
+  FAILED
+  // Legacy aliases
   OCR_EXTRACTING
   METADATA_EXTRACTING
   STRUCTURED_DATA_EXTRACTING
   CHUNKING
   EMBEDDING
   INDEXED
-  FAILED
 }
 
 enum JobStatus {
@@ -153,10 +161,17 @@ model Document {
   blockName       String? // e.g. "Block-B West"
   coalSeam        String? // e.g. "Seam V/VI/VII"
   reserveCategory String? // Proved, Indicated, Inferred
-  authoringBody   String? // CMPDI Regional Institute-1
-  reportYear      Int?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  authoringBody    String? // CMPDI Regional Institute-1
+  reportYear       Int?
+  sourceDepartment String? // e.g. "Geology & Exploration Dept"
+  subsidiary       String? // e.g. "SECL", "ECL", "CMPDI"
+  documentDate     DateTime?
+  processingError  String?
+  ocrConfidence    Float?
+  ocrStatus        String? // "NATIVE", "OCR_PROCESSED", "LOW_CONFIDENCE"
+  tables           Json? // Structured extracted tables
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   project        Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   uploader       User               @relation("DocumentUploader", fields: [uploaderId], references: [id], onDelete: Restrict)
@@ -204,7 +219,7 @@ model DocumentChunk {
   tokenCount Int
   startChar  Int?
   endChar    Int?
-  embedding  Unsupported("vector")? // Vector embedding (pgvector)
+  embedding  Unsupported("vector(1536)")? // Vector embedding (pgvector 1536 dimensions)
   createdAt  DateTime               @default(now())
   updatedAt  DateTime               @updatedAt
 

@@ -31,6 +31,8 @@ export const errorHandlerMiddleware = (
     }
 
     res.status(err.statusCode).json({
+      success: false,
+      data: null,
       error: err.name,
       message: err.message,
       errorCode: err.errorCode,
@@ -51,6 +53,8 @@ export const errorHandlerMiddleware = (
     });
 
     res.status(400).json({
+      success: false,
+      data: null,
       error: 'Validation Error',
       message: 'Invalid request payload or query parameters',
       errorCode: 'VALIDATION_ERROR',
@@ -62,7 +66,27 @@ export const errorHandlerMiddleware = (
     return;
   }
 
-  // 3. Multer Upload Errors
+  // 3. Payload Too Large (Express Body Parser / Stream)
+  if (
+    err.name === 'PayloadTooLargeError' ||
+    ('type' in err && (err as any).type === 'entity.too.large') ||
+    (err as any).status === 413
+  ) {
+    logger.warn(`[Payload Too Large] Request body exceeded size limit`, { requestId });
+    res.status(413).json({
+      success: false,
+      data: null,
+      error: 'Payload Too Large',
+      message: 'Request payload exceeds maximum allowed size limit',
+      errorCode: 'PAYLOAD_TOO_LARGE',
+      statusCode: 413,
+      requestId,
+      timestamp,
+    });
+    return;
+  }
+
+  // 4. Multer Upload Errors
   if (err.name === 'MulterError') {
     const multerError = err as any;
     let message = 'File upload error occurred';
@@ -78,6 +102,8 @@ export const errorHandlerMiddleware = (
     logger.warn(`[Upload Error] ${message}`, { requestId, code: multerError.code });
 
     res.status(statusCode).json({
+      success: false,
+      data: null,
       error: 'Upload Error',
       message,
       errorCode: multerError.code || 'UPLOAD_ERROR',
@@ -88,10 +114,12 @@ export const errorHandlerMiddleware = (
     return;
   }
 
-  // 4. JSON Syntax Errors (Malformed Body)
+  // 5. JSON Syntax Errors (Malformed Body)
   if ('type' in err && (err as any).type === 'entity.parse.failed') {
     logger.warn(`[JSON Parse Failed] Malformed JSON in request body`, { requestId });
     res.status(400).json({
+      success: false,
+      data: null,
       error: 'Bad Request',
       message: 'Malformed JSON payload in request body',
       errorCode: 'MALFORMED_JSON',
@@ -102,21 +130,21 @@ export const errorHandlerMiddleware = (
     return;
   }
 
-  // 5. Unhandled / Internal Server Errors
+  // 6. Unhandled / Internal Server Errors (No stack trace exposed to users)
   logger.error(`[Unhandled Error] ${err.message}`, err, {
     requestId,
     path: req.originalUrl,
     method: req.method,
   });
 
-  const isProduction = env.NODE_ENV === 'production';
   res.status(500).json({
+    success: false,
+    data: null,
     error: 'Internal Server Error',
-    message: isProduction ? 'An unexpected server error occurred. Please contact support.' : err.message,
+    message: 'An unexpected server error occurred. Please contact support.',
     errorCode: 'INTERNAL_SERVER_ERROR',
     statusCode: 500,
     requestId,
     timestamp,
-    ...(!isProduction && err.stack ? { stack: err.stack } : {}),
   });
 };

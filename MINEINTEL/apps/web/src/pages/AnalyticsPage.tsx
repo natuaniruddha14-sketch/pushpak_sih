@@ -274,7 +274,7 @@ export const AnalyticsPage: React.FC = () => {
       filename: docName,
       processingStage: 'INDEXED',
       pageCount: 30,
-      mineName: prodProjectFilter !== 'All' ? prodProjectFilter : 'MineIntel Repository',
+      mineName: prodProjectFilter !== 'All' ? prodProjectFilter : 'CERA Repository',
       pages: Array.from({ length: 30 }, (_, i) => ({
         pageNumber: i + 1,
         rawText: `[Extracted Text for ${docName} - Page ${i + 1}]\nProved coal reserve estimation, seam stratigraphy, and overburden stripping calculations verified by CMPDI standards.`,
@@ -301,7 +301,7 @@ export const AnalyticsPage: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `MineIntel_Analytics_${prodMetricFilter}_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `CERA_Analytics_${prodMetricFilter}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -326,25 +326,25 @@ export const AnalyticsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-12">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-4 border-b border-slate-200">
         <div>
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400">
-              <BarChart3 className="w-5 h-5" />
+          <div className="flex items-center space-x-2">
+            <div className="p-2 bg-blue-600 text-white rounded-xl shadow-xs">
+              <BarChart3 className="w-4 h-4 text-amber-700" />
             </div>
-            <h1 className="text-xl font-bold text-white tracking-tight">MineIntel Enterprise Analytics</h1>
+            <h1 className="text-lg font-bold text-slate-900 tracking-tight">CERA Enterprise Analytics</h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">
             Real-time backend analytics for production trends, project comparisons, document processing, topics, and term frequencies.
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
           <button
             onClick={fetchAllAnalyticsData}
-            className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 font-semibold text-xs rounded-xl flex items-center space-x-2 transition"
+            className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -352,75 +352,91 @@ export const AnalyticsPage: React.FC = () => {
 
           <button
             onClick={exportCSV}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl flex items-center space-x-2 transition"
+            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5" />
             <span>Export CSV</span>
           </button>
         </div>
       </div>
 
+      {error && (
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={fetchAllAnalyticsData}
+            className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-lg font-medium text-xs transition flex items-center space-x-1"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>Retry</span>
+          </button>
+        </div>
+      )}
+
       {/* KPI Cards Header */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* KPI 1: Production */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400">
-            <Database className="w-6 h-6" />
+        <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center space-x-3.5 shadow-xs">
+          <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-600">
+            <Database className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-slate-400 font-medium">Annual Production</span>
-            <div className="text-xl font-extrabold text-white tracking-tight">{summary.productionMt} MT</div>
-            <span className="text-[10px] text-emerald-400 font-mono flex items-center mt-0.5">
+            <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Annual Production</span>
+            <div className="text-xl font-bold font-mono text-slate-900">{summary.productionMt} MT</div>
+            <span className="text-[10px] text-emerald-600 font-semibold flex items-center mt-0.5">
               <ArrowUpRight className="w-3 h-3 mr-0.5" /> Live Backend Data
             </span>
           </div>
         </div>
 
         {/* KPI 2: Projects */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-cyan-400">
-            <Building2 className="w-6 h-6" />
+        <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center space-x-3.5 shadow-xs">
+          <div className="p-2.5 bg-cyan-50 border border-cyan-200 rounded-xl text-cyan-600">
+            <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-slate-400 font-medium">Active Projects</span>
-            <div className="text-xl font-extrabold text-white tracking-tight">{summary.projectsCount} Blocks</div>
-            <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">CMPDI & CIL Sites</span>
+            <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Active Projects</span>
+            <div className="text-xl font-bold font-mono text-slate-900">{summary.projectsCount} Blocks</div>
+            <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">CMPDI & CIL Sites</span>
           </div>
         </div>
 
         {/* KPI 3: Documents */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400">
-            <FileText className="w-6 h-6" />
+        <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center space-x-3.5 shadow-xs">
+          <div className="p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-600">
+            <FileText className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-slate-400 font-medium">Indexed Documents</span>
-            <div className="text-xl font-extrabold text-white tracking-tight">{summary.documentsCount} Files</div>
-            <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">840 Total Pages</span>
+            <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Indexed Documents</span>
+            <div className="text-xl font-bold font-mono text-slate-900">{summary.documentsCount} Files</div>
+            <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">840 Total Pages</span>
           </div>
         </div>
 
         {/* KPI 4: Reports */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-purple-400">
-            <FileSpreadsheet className="w-6 h-6" />
+        <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center space-x-3.5 shadow-xs">
+          <div className="p-2.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-600">
+            <FileSpreadsheet className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-slate-400 font-medium">Geological Reports</span>
-            <div className="text-xl font-extrabold text-white tracking-tight">{summary.reportsCount} Reports</div>
-            <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">GRs & Dossiers</span>
+            <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Geological Reports</span>
+            <div className="text-xl font-bold font-mono text-slate-900">{summary.reportsCount} Reports</div>
+            <span className="text-[10px] text-slate-400 font-medium mt-0.5 block">GRs & Dossiers</span>
           </div>
         </div>
 
         {/* KPI 5: Processing Confidence */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
-            <ShieldCheck className="w-6 h-6" />
+        <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center space-x-3.5 shadow-xs">
+          <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-600">
+            <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] text-slate-400 font-medium">OCR & Processing</span>
-            <div className="text-xl font-extrabold text-emerald-400 tracking-tight">{summary.processingAccuracyPercent}%</div>
-            <span className="text-[10px] text-emerald-400 font-mono flex items-center mt-0.5">
+            <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">OCR Precision</span>
+            <div className="text-xl font-bold font-mono text-emerald-700">{summary.processingAccuracyPercent}%</div>
+            <span className="text-[10px] text-emerald-600 font-semibold flex items-center mt-0.5">
               <CheckCircle2 className="w-3 h-3 mr-0.5" /> High Precision
             </span>
           </div>
@@ -428,98 +444,52 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-800 space-x-2">
-        <button
-          onClick={() => setActiveTab('production')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition flex items-center space-x-2 border-b-2 ${
-            activeTab === 'production'
-              ? 'border-amber-500 text-amber-400 bg-amber-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-          }`}
-        >
-          <BarChart3 className="w-4 h-4" />
-          <span>1. Production Analytics</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('comparison')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition flex items-center space-x-2 border-b-2 ${
-            activeTab === 'comparison'
-              ? 'border-amber-500 text-amber-400 bg-amber-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-          }`}
-        >
-          <Sliders className="w-4 h-4" />
-          <span>2. Project Comparison</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('trends')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition flex items-center space-x-2 border-b-2 ${
-            activeTab === 'trends'
-              ? 'border-amber-500 text-amber-400 bg-amber-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-          }`}
-        >
-          <TrendingUp className="w-4 h-4" />
-          <span>3. Yearly Trends</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('documents')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition flex items-center space-x-2 border-b-2 ${
-            activeTab === 'documents'
-              ? 'border-amber-500 text-amber-400 bg-amber-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-          }`}
-        >
-          <PieIcon className="w-4 h-4" />
-          <span>4. Document Stats</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('topics')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition flex items-center space-x-2 border-b-2 ${
-            activeTab === 'topics'
-              ? 'border-amber-500 text-amber-400 bg-amber-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-          }`}
-        >
-          <BookOpen className="w-4 h-4" />
-          <span>5. Topic Identification</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('wordcloud')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition flex items-center space-x-2 border-b-2 ${
-            activeTab === 'wordcloud'
-              ? 'border-amber-500 text-amber-400 bg-amber-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-          }`}
-        >
-          <Tag className="w-4 h-4" />
-          <span>6. Word Cloud</span>
-        </button>
+      <div className="flex border-b border-slate-200 space-x-1.5 overflow-x-auto pb-1">
+        {[
+          { id: 'production', label: '1. Production Analytics', icon: BarChart3 },
+          { id: 'comparison', label: '2. Project Comparison', icon: Sliders },
+          { id: 'trends', label: '3. Yearly Trends', icon: TrendingUp },
+          { id: 'documents', label: '4. Document Stats', icon: PieIcon },
+          { id: 'topics', label: '5. Topic Identification', icon: BookOpen },
+          { id: 'wordcloud', label: '6. Word Cloud', icon: Tag },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-3.5 py-2 text-xs font-semibold rounded-xl transition flex items-center space-x-1.5 shrink-0 ${
+                isActive
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab 1: Production Analytics Dashboard */}
       {activeTab === 'production' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Controls bar for Production */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-xs">
             <div className="flex items-center space-x-2">
-              <Filter className="w-4 h-4 text-amber-400" />
-              <span className="text-xs font-bold text-white">Chart Controls:</span>
+              <Filter className="w-4 h-4 text-slate-700" />
+              <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Chart Controls:</span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3.5">
               {/* Project Filter */}
               <div>
-                <label className="text-[10px] text-slate-400 font-mono block mb-1">Project</label>
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Project</label>
                 <select
                   value={prodProjectFilter}
                   onChange={(e) => setProdProjectFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500/50"
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
                 >
                   <option value="All">All Projects</option>
                   <option value="Gevra OCP">Gevra OCP</option>
@@ -532,11 +502,11 @@ export const AnalyticsPage: React.FC = () => {
 
               {/* Year Filter */}
               <div>
-                <label className="text-[10px] text-slate-400 font-mono block mb-1">Financial Year</label>
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Financial Year</label>
                 <select
                   value={prodYearFilter}
                   onChange={(e) => setProdYearFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500/50"
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
                 >
                   <option value="All">All Years</option>
                   <option value="2020-21">2020-21</option>
@@ -550,11 +520,11 @@ export const AnalyticsPage: React.FC = () => {
 
               {/* Metric Filter */}
               <div>
-                <label className="text-[10px] text-slate-400 font-mono block mb-1">Metric</label>
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Metric</label>
                 <select
                   value={prodMetricFilter}
                   onChange={(e) => setProdMetricFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500/50"
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
                 >
                   <option value="production">Annual Production</option>
                   <option value="proved_reserves">Proved Reserves</option>
@@ -565,11 +535,11 @@ export const AnalyticsPage: React.FC = () => {
 
               {/* Unit Filter */}
               <div>
-                <label className="text-[10px] text-slate-400 font-mono block mb-1">Unit</label>
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Unit</label>
                 <select
                   value={prodUnitFilter}
                   onChange={(e) => setProdUnitFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500/50"
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
                 >
                   <option value="MT">Million Tonnes (MT)</option>
                   <option value="TONNES">Tonnes</option>
@@ -583,26 +553,26 @@ export const AnalyticsPage: React.FC = () => {
 
           {/* Unit Incompatibility Conversion Warning Banner */}
           {conversionWarning && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center space-x-3 text-amber-300 text-xs">
-              <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-400" />
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-center space-x-2.5 text-amber-800 text-xs">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-600" />
               <div>
                 <span className="font-bold">Unit Normalization Alert:</span> {conversionWarning}
               </div>
             </div>
           )}
 
-          {/* Main Production Recharts Bar Chart */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+          {/* Main Production Recharts Bar Chart (Black / Dark Slate Graph & Dark Headings) */}
+          <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-5 space-y-4 shadow-xs">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-white">
+                <h3 className="text-sm font-bold text-slate-900">
                   {getMetricLabel(prodMetricFilter)} Analytics
                 </h3>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-xs text-slate-400 mt-0.5">
                   Showing values for {prodProjectFilter} ({prodYearFilter === 'All' ? 'Multi-Year Trajectory' : prodYearFilter}) in {productionData[0]?.unit || prodUnitFilter}
                 </p>
               </div>
-              <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+              <span className="text-[10px] font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
                 Backend Recharts Data
               </span>
             </div>
@@ -610,22 +580,22 @@ export const AnalyticsPage: React.FC = () => {
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={productionData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="project" stroke="#64748b" tick={{ fontSize: 10 }} />
-                  <YAxis stroke="#64748b" tick={{ fontSize: 10 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="project" stroke="#64748b" tick={{ fontSize: 11, fill: '#334155' }} />
+                  <YAxis stroke="#64748b" tick={{ fontSize: 11, fill: '#334155' }} />
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const data: ProductionDataPoint = payload[0].payload;
                         return (
-                          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl text-xs space-y-1">
-                            <div className="font-bold text-white">{data.project} ({data.year})</div>
-                            <div className="text-amber-400 font-mono">
-                              {getMetricLabel(data.rawMetric)}: <span className="font-extrabold">{data.value.toLocaleString()} {data.unit}</span>
+                          <div className="bg-blue-600 text-white rounded-xl p-3 shadow-xl text-xs space-y-1 border border-slate-200/90">
+                            <div className="font-bold text-slate-900">{data.project} ({data.year})</div>
+                            <div className="text-amber-700 font-mono">
+                              {getMetricLabel(data.rawMetric)}: <span className="font-bold text-white">{data.value.toLocaleString()} {data.unit}</span>
                             </div>
                             {data.sourceReference && (
-                              <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800 font-mono">
-                                📄 Source: <span className="text-cyan-400">{data.sourceReference.documentName}</span> (p. {data.sourceReference.pageNumber})
+                              <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-200/90 font-sans">
+                                📄 Source: <span className="text-blue-600 font-medium">{data.sourceReference.documentName}</span> (p. {data.sourceReference.pageNumber})
                               </div>
                             )}
                           </div>
@@ -634,63 +604,64 @@ export const AnalyticsPage: React.FC = () => {
                       return null;
                     }}
                   />
-                  <Bar dataKey="value" name={getMetricLabel(prodMetricFilter)} fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                  {/* Black Graph Fill */}
+                  <Bar dataKey="value" name={getMetricLabel(prodMetricFilter)} fill="#0f172a" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Drilldown Table with Source References */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-5 space-y-4 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                  <FileSpreadsheet className="w-4 h-4 text-amber-400" />
+                <h3 className="text-xs font-bold text-slate-900 flex items-center space-x-1.5 uppercase tracking-wider">
+                  <FileSpreadsheet className="w-4 h-4 text-blue-600" />
                   <span>Production Data Points & Document Source References</span>
                 </h3>
-                <p className="text-xs text-slate-400">Click any document source reference to view verified source page in RAG document viewer</p>
+                <p className="text-xs text-slate-400 mt-0.5">Click any document source reference to view verified source page in RAG document viewer</p>
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-950 text-slate-400 font-mono text-[10px] uppercase border-b border-slate-800">
+              <table className="enterprise-table">
+                <thead>
                   <tr>
-                    <th className="p-3">Project Block</th>
-                    <th className="p-3">Financial Year</th>
-                    <th className="p-3">Metric</th>
-                    <th className="p-3">Value</th>
-                    <th className="p-3">Unit</th>
-                    <th className="p-3">Source Citation</th>
-                    <th className="p-3 text-right">Document Action</th>
+                    <th>Project Block</th>
+                    <th>Financial Year</th>
+                    <th>Metric</th>
+                    <th>Value</th>
+                    <th>Unit</th>
+                    <th>Source Citation</th>
+                    <th className="text-right">Document Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-mono">
+                <tbody className="divide-y divide-slate-100">
                   {productionData.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-800/40 transition">
-                      <td className="p-3 font-sans font-bold text-white">{row.project}</td>
-                      <td className="p-3 text-slate-300">{row.year}</td>
-                      <td className="p-3 text-cyan-400">{getMetricLabel(row.rawMetric)}</td>
-                      <td className="p-3 text-amber-400 font-bold">{row.value.toLocaleString()}</td>
-                      <td className="p-3 text-slate-400">{row.unit}</td>
-                      <td className="p-3">
+                    <tr key={idx} className="hover:bg-slate-50 transition">
+                      <td className="font-semibold text-slate-900">{row.project}</td>
+                      <td className="text-slate-600">{row.year}</td>
+                      <td className="text-blue-700 font-medium">{getMetricLabel(row.rawMetric)}</td>
+                      <td className="text-slate-900 font-bold font-mono">{row.value.toLocaleString()}</td>
+                      <td className="text-slate-400 font-mono">{row.unit}</td>
+                      <td>
                         {row.sourceReference ? (
-                          <span className="inline-flex items-center space-x-1.5 bg-slate-950 border border-slate-800 px-2 py-1 rounded-lg text-[10px] text-slate-300">
-                            <FileText className="w-3 h-3 text-amber-400" />
+                          <span className="inline-flex items-center space-x-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg text-xs text-slate-700">
+                            <FileText className="w-3.5 h-3.5 text-blue-600" />
                             <span>{row.sourceReference.documentName}</span>
-                            <span className="text-amber-400 font-bold">p.{row.sourceReference.pageNumber}</span>
+                            <span className="text-blue-700 font-bold">p.{row.sourceReference.pageNumber}</span>
                           </span>
                         ) : (
-                          <span className="text-slate-500">Not Available</span>
+                          <span className="text-slate-400">Not Available</span>
                         )}
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="text-right">
                         {row.sourceReference && (
                           <button
                             onClick={() => handleOpenSourceCitation(row.sourceReference!.documentName, row.sourceReference!.pageNumber)}
-                            className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-[10px] font-sans font-semibold inline-flex items-center space-x-1 transition"
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80 rounded-lg text-xs font-semibold inline-flex items-center space-x-1 transition"
                           >
-                            <ExternalLink className="w-3 h-3" />
+                            <ExternalLink className="w-3 h-3 text-slate-600" />
                             <span>View Source</span>
                           </button>
                         )}
@@ -706,64 +677,64 @@ export const AnalyticsPage: React.FC = () => {
 
       {/* Tab 2: Project Comparison */}
       {activeTab === 'comparison' && (
-        <div className="space-y-6">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div className="space-y-4">
+          <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-5 space-y-4 shadow-xs">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-white">Side-by-Side Project Reserve & Production Comparison</h3>
-                <p className="text-[11px] text-slate-400">Comparing Production vs Proved Reserve vs Indicated Reserve across CMPDI Blocks</p>
+                <h3 className="text-sm font-bold text-slate-900">Side-by-Side Project Reserve & Production Comparison</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Comparing Production vs Proved Reserve vs Indicated Reserve across CMPDI Blocks</p>
               </div>
             </div>
 
             <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={comparisonData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="project" stroke="#64748b" tick={{ fontSize: 10 }} />
-                  <YAxis stroke="#64748b" tick={{ fontSize: 10 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="project" stroke="#64748b" tick={{ fontSize: 11, fill: '#334155' }} />
+                  <YAxis stroke="#64748b" tick={{ fontSize: 11, fill: '#334155' }} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#fff', fontSize: '11px' }}
                   />
-                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                  <Bar dataKey="productionMt" name="Annual Production (MT)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="provedReserveMt" name="Proved Reserve (MT)" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="indicatedReserveMt" name="Indicated Reserve (MT)" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                  <Bar dataKey="productionMt" name="Annual Production (MT)" fill="#0f172a" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="provedReserveMt" name="Proved Reserve (MT)" fill="#334155" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="indicatedReserveMt" name="Indicated Reserve (MT)" fill="#64748b" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Comparison Detailed Table */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-white">Project Benchmark Matrix</h3>
+          <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-5 space-y-4 shadow-xs">
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Project Benchmark Matrix</h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-950 text-slate-400 font-mono text-[10px] uppercase border-b border-slate-800">
+              <table className="enterprise-table">
+                <thead>
                   <tr>
-                    <th className="p-3">Project Block</th>
-                    <th className="p-3">Production (MT)</th>
-                    <th className="p-3">Proved (MT)</th>
-                    <th className="p-3">Indicated (MT)</th>
-                    <th className="p-3">Stripping Ratio (m³/t)</th>
-                    <th className="p-3">Seam Thickness (m)</th>
-                    <th className="p-3">GCV (kcal/kg)</th>
-                    <th className="p-3 text-right">Source Document</th>
+                    <th>Project Block</th>
+                    <th>Production (MT)</th>
+                    <th>Proved (MT)</th>
+                    <th>Indicated (MT)</th>
+                    <th>Stripping Ratio (m³/t)</th>
+                    <th>Seam Thickness (m)</th>
+                    <th>GCV (kcal/kg)</th>
+                    <th className="text-right">Source Document</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-mono">
+                <tbody className="divide-y divide-slate-100 font-mono">
                   {comparisonData.map((p, i) => (
-                    <tr key={i} className="hover:bg-slate-800/40 transition">
-                      <td className="p-3 font-sans font-bold text-white">{p.project}</td>
-                      <td className="p-3 text-amber-400 font-bold">{p.productionMt} MT</td>
-                      <td className="p-3 text-cyan-400">{p.provedReserveMt} MT</td>
-                      <td className="p-3 text-purple-400">{p.indicatedReserveMt} MT</td>
-                      <td className="p-3 text-slate-200">{p.strippingRatio} m³/t</td>
-                      <td className="p-3 text-slate-200">{p.seamThicknessMeters} m</td>
-                      <td className="p-3 text-emerald-400 font-bold">{p.gcvKcal} kcal</td>
-                      <td className="p-3 text-right">
+                    <tr key={i} className="hover:bg-slate-50 transition">
+                      <td className="font-sans font-bold text-slate-900">{p.project}</td>
+                      <td className="text-slate-900 font-bold">{p.productionMt} MT</td>
+                      <td className="text-slate-700">{p.provedReserveMt} MT</td>
+                      <td className="text-slate-700">{p.indicatedReserveMt} MT</td>
+                      <td className="text-slate-600">{p.strippingRatio} m³/t</td>
+                      <td className="text-slate-600">{p.seamThicknessMeters} m</td>
+                      <td className="text-emerald-700 font-bold">{p.gcvKcal} kcal</td>
+                      <td className="text-right">
                         <button
                           onClick={() => handleOpenSourceCitation(p.sourceDocument, p.sourcePage)}
-                          className="text-[10px] text-amber-400 hover:underline flex items-center justify-end space-x-1 font-sans ml-auto"
+                          className="text-xs text-blue-600 hover:underline flex items-center justify-end space-x-1 font-sans ml-auto font-medium"
                         >
                           <span>{p.sourceDocument} (p.{p.sourcePage})</span>
                           <ExternalLink className="w-3 h-3" />
@@ -780,30 +751,30 @@ export const AnalyticsPage: React.FC = () => {
 
       {/* Tab 3: Yearly Trends */}
       {activeTab === 'trends' && (
-        <div className="space-y-6">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div className="space-y-4">
+          <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-5 space-y-4 shadow-xs">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-white">Multi-Year Trajectory (2020-2026)</h3>
-                <p className="text-[11px] text-slate-400">Total Production Trajectory (MT) & Stripping Ratio Efficiency</p>
+                <h3 className="text-sm font-bold text-slate-900">Multi-Year Trajectory (2020-2026)</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Total Production Trajectory (MT) & Stripping Ratio Efficiency</p>
               </div>
             </div>
 
             <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={yearlyTrends} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="year" stroke="#64748b" tick={{ fontSize: 10 }} />
-                  <YAxis yAxisId="left" stroke="#64748b" tick={{ fontSize: 10 }} />
-                  <YAxis yAxisId="right" orientation="right" stroke="#64748b" tick={{ fontSize: 10 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="year" stroke="#64748b" tick={{ fontSize: 11, fill: '#334155' }} />
+                  <YAxis yAxisId="left" stroke="#64748b" tick={{ fontSize: 11, fill: '#334155' }} />
+                  <YAxis yAxisId="right" orientation="right" stroke="#64748b" tick={{ fontSize: 11, fill: '#334155' }} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#fff', fontSize: '11px' }}
                   />
-                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                  <Area yAxisId="left" type="monotone" dataKey="totalProduction" name="Total Production (MT)" fill="#f59e0b22" stroke="#f59e0b" strokeWidth={2} />
-                  <Line yAxisId="left" type="monotone" dataKey="gevraProduction" name="Gevra OCP (MT)" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3 }} />
-                  <Line yAxisId="left" type="monotone" dataKey="kusmundaProduction" name="Kusmunda OCP (MT)" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
-                  <Line yAxisId="right" type="monotone" dataKey="avgStrippingRatio" name="Avg Stripping Ratio (m³/t)" stroke="#10b981" strokeWidth={3} strokeDasharray="5 5" />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                  <Area yAxisId="left" type="monotone" dataKey="totalProduction" name="Total Production (MT)" fill="#0f172a15" stroke="#0f172a" strokeWidth={2.5} />
+                  <Line yAxisId="left" type="monotone" dataKey="gevraProduction" name="Gevra OCP (MT)" stroke="#334155" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="kusmundaProduction" name="Kusmunda OCP (MT)" stroke="#64748b" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line yAxisId="right" type="monotone" dataKey="avgStrippingRatio" name="Avg Stripping Ratio (m³/t)" stroke="#10b981" strokeWidth={2} strokeDasharray="4 4" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -813,11 +784,11 @@ export const AnalyticsPage: React.FC = () => {
 
       {/* Tab 4: Document Statistics */}
       {activeTab === 'documents' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Format Distribution Pie */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-              <h3 className="text-sm font-bold text-white">Ingested Document Formats</h3>
+            <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-5 space-y-4 shadow-xs">
+              <h3 className="text-sm font-bold text-slate-900">Ingested Document Formats</h3>
               <div className="h-64 w-full flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -826,7 +797,7 @@ export const AnalyticsPage: React.FC = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }} />
+                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#fff', fontSize: '11px' }} />
                     <Legend wrapperStyle={{ fontSize: '11px' }} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -834,16 +805,16 @@ export const AnalyticsPage: React.FC = () => {
             </div>
 
             {/* Stage Breakdown Bar */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-              <h3 className="text-sm font-bold text-white">Pipeline Ingestion Stages</h3>
+            <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-5 space-y-4 shadow-xs">
+              <h3 className="text-sm font-bold text-slate-900">Pipeline Ingestion Stages</h3>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={docStats.stages} layout="vertical" margin={{ top: 10, right: 20, left: 40, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis type="number" stroke="#64748b" tick={{ fontSize: 10 }} />
-                    <YAxis dataKey="stage" type="category" stroke="#64748b" tick={{ fontSize: 10 }} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }} />
-                    <Bar dataKey="count" fill="#10b981" radius={[0, 4, 4, 0]} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                    <XAxis type="number" stroke="#64748b" tick={{ fontSize: 11, fill: '#334155' }} />
+                    <YAxis dataKey="stage" type="category" stroke="#64748b" tick={{ fontSize: 11, fill: '#334155' }} />
+                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#fff', fontSize: '11px' }} />
+                    <Bar dataKey="count" fill="#0f172a" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -854,35 +825,35 @@ export const AnalyticsPage: React.FC = () => {
 
       {/* Tab 5: Topic Identification */}
       {activeTab === 'topics' && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-5 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
+              <h3 className="text-xs font-bold text-slate-900 flex items-center space-x-1.5 uppercase tracking-wider">
+                <Sparkles className="w-4 h-4 text-blue-600" />
                 <span>Extracted Mining Topics Across Index</span>
               </h3>
-              <p className="text-xs text-slate-400">Latent Dirichlet Allocation & Semantic Topic Clustering</p>
+              <p className="text-xs text-slate-400 mt-0.5">Latent Dirichlet Allocation & Semantic Topic Clustering</p>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {topics.map((t, idx) => (
-              <div key={idx} className="bg-slate-950 border border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="text-xs font-bold text-white flex items-center space-x-2">
-                    <span className="text-amber-400 font-mono text-[11px]">#{idx + 1}</span>
+              <div key={idx} className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="text-xs font-bold text-slate-900 flex items-center space-x-2">
+                    <span className="text-blue-600 font-mono text-[11px]">#{idx + 1}</span>
                     <span>{t.topic}</span>
                   </div>
-                  <div className="text-[10px] text-slate-400">
-                    Found in <span className="text-cyan-400 font-bold">{t.reportCount}</span> indexed reports
+                  <div className="text-[11px] text-slate-400">
+                    Found in <span className="text-slate-800 font-bold">{t.reportCount}</span> indexed reports
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-4">
-                  <div className="w-32 bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
-                    <div className="bg-gradient-to-r from-amber-500 to-emerald-400 h-full rounded-full" style={{ width: `${t.relevanceScore * 100}%` }} />
+                <div className="flex items-center space-x-3">
+                  <div className="w-28 bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div className="bg-blue-600 h-full rounded-full" style={{ width: `${t.relevanceScore * 100}%` }} />
                   </div>
-                  <span className="text-xs font-mono font-bold text-emerald-400">{Math.round(t.relevanceScore * 100)}% Match</span>
+                  <span className="text-xs font-mono font-bold text-emerald-700">{Math.round(t.relevanceScore * 100)}% Match</span>
                 </div>
               </div>
             ))}
@@ -892,33 +863,33 @@ export const AnalyticsPage: React.FC = () => {
 
       {/* Tab 6: Word Cloud Data */}
       {activeTab === 'wordcloud' && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="panel-card bg-white border border-slate-200/90 rounded-2xl p-5 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                <Tag className="w-4 h-4 text-amber-400" />
+              <h3 className="text-xs font-bold text-slate-900 flex items-center space-x-1.5 uppercase tracking-wider">
+                <Tag className="w-4 h-4 text-blue-600" />
                 <span>Mining Domain Term Frequencies</span>
               </h3>
-              <p className="text-xs text-slate-400">High-frequency mining terms extracted from geological reports</p>
+              <p className="text-xs text-slate-400 mt-0.5">High-frequency mining terms extracted from geological reports</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2.5 p-4 bg-slate-950 border border-slate-800 rounded-2xl">
+          <div className="flex flex-wrap gap-2.5 p-4 bg-slate-50 border border-slate-200/80 rounded-xl">
             {wordCloud.map((wc, idx) => {
-              const fontSize = Math.max(11, Math.min(20, Math.round(wc.value / 8)));
+              const fontSize = Math.max(11, Math.min(18, Math.round(wc.value / 8)));
               return (
                 <div
                   key={idx}
-                  className="px-3 py-1.5 rounded-xl border font-mono transition hover:scale-105 cursor-default flex items-center space-x-2"
+                  className="px-3 py-1.5 rounded-xl border font-mono transition cursor-default flex items-center space-x-1.5 shadow-xs"
                   style={{
                     fontSize: `${fontSize}px`,
-                    backgroundColor: wc.category === 'reserve' ? '#f59e0b15' : wc.category === 'geology' ? '#06b6d415' : wc.category === 'mining' ? '#8b5cf615' : '#10b98115',
-                    borderColor: wc.category === 'reserve' ? '#f59e0b40' : wc.category === 'geology' ? '#06b6d440' : wc.category === 'mining' ? '#8b5cf640' : '#10b98140',
-                    color: wc.category === 'reserve' ? '#f59e0b' : wc.category === 'geology' ? '#06b6d4' : wc.category === 'mining' ? '#8b5cf6' : '#10b981',
+                    backgroundColor: wc.category === 'reserve' ? '#f1f5f9' : wc.category === 'geology' ? '#eff6ff' : wc.category === 'mining' ? '#f5f3ff' : '#ecfdf5',
+                    borderColor: wc.category === 'reserve' ? '#cbd5e1' : wc.category === 'geology' ? '#bfdbfe' : wc.category === 'mining' ? '#ddd6fe' : '#a7f3d0',
+                    color: wc.category === 'reserve' ? '#0f172a' : wc.category === 'geology' ? '#1d4ed8' : wc.category === 'mining' ? '#6d28d9' : '#047857',
                   }}
                 >
-                  <span>{wc.text}</span>
-                  <span className="text-[10px] bg-slate-900 px-1.5 py-0.5 rounded-md font-sans text-slate-300 border border-slate-800">
+                  <span className="font-semibold">{wc.text}</span>
+                  <span className="text-[10px] bg-white px-1.5 py-0.5 rounded-md font-sans text-slate-700 border border-slate-200 font-bold">
                     {wc.value}
                   </span>
                 </div>

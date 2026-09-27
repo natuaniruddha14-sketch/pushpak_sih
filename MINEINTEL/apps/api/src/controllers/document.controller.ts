@@ -4,16 +4,24 @@ import { createDocumentSchema, updateDocumentStageSchema } from '../schemas/docu
 import { DocumentRepository } from '../repositories/document.repository';
 import { ProcessingJobRepository } from '../repositories/processing-job.repository';
 import { AuditLogRepository } from '../repositories/audit-log.repository';
-import { ALLOWED_MIME_TYPES } from '../middleware/upload.middleware';
+import { ALLOWED_MIME_TYPES, validateFileMagicBytes, DANGEROUS_EXTENSIONS } from '../middleware/upload.middleware';
 import { storageProvider } from '../lib/storage';
 import { JobStatus, ProcessingStage, DocumentType } from '@prisma/client';
-import { prisma } from '../lib/prisma';
+import { prisma, isDatabaseConnected } from '../lib/prisma';
+import { IngestionService } from '../services/ingestion.service';
+import path from 'path';
+import crypto from 'crypto';
 
 export class DocumentController {
   static async uploadDocument(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({ error: 'Unauthorized', message: 'User is not authenticated' });
+        res.status(401).json({
+          success: false,
+          data: null,
+          error: 'Unauthorized',
+          message: 'User is not authenticated',
+        });
         return;
       }
 
@@ -30,46 +38,75 @@ export class DocumentController {
       }
 
       if (!req.file) {
-        res.status(400).json({ error: 'Bad Request', message: 'Multipart request must include a file field' });
+        res.status(400).json({
+          success: false,
+          data: null,
+          error: 'Bad Request',
+          message: 'Multipart request must include a file field',
+        });
         return;
       }
 
       // Check file size boundary (> 100MB)
       if (req.file.size > 100 * 1024 * 1024) {
-        res.status(400).json({ error: 'Payload Too Large', message: 'File size exceeds maximum 100MB limit' });
-        return;
-      }
-
-      // Check extension & MIME type
-      const filenameLower = req.file.originalname.toLowerCase();
-      if (filenameLower.endsWith('.exe') || filenameLower.endsWith('.bin') || filenameLower.endsWith('.dll')) {
         res.status(400).json({
-          error: 'Validation Error',
-          message: `Unsupported MIME type for executable file '${req.file.originalname}'`,
+          success: false,
+          data: null,
+          error: 'Payload Too Large',
+          message: 'File size exceeds maximum 100MB limit',
         });
         return;
       }
 
-      const mappedFileType = ALLOWED_MIME_TYPES[req.file.mimetype];
+      // Check extension
+      const originalName = req.file.originalname || '';
+      const ext = path.extname(originalName).toLowerCase();
+      if (DANGEROUS_EXTENSIONS.has(ext)) {
+        res.status(400).json({
+          success: false,
+          data: null,
+          error: 'Validation Error',
+          message: `Unsupported MIME type for executable file '${originalName}'`,
+        });
+        return;
+      }
+
+      const mappedFileType = ALLOWED_MIME_TYPES[req.file.mimetype.toLowerCase()];
       if (!mappedFileType) {
         res.status(400).json({
+          success: false,
+          data: null,
           error: 'Validation Error',
-          message: `Unsupported MIME type '${req.file.mimetype}'. Supported formats: PDF, DOCX, XLSX, PNG, JPG/JPEG`,
+          message: `Unsupported MIME type '${req.file.mimetype}'. Supported formats: PDF, DOCX, XLSX, CSV, PNG, JPG/JPEG`,
         });
         return;
       }
 
-      // 2. Save file safely using storage abstraction (sanitizes filename, computes SHA-256)
+      // Binary Magic Bytes Validation to defeat MIME spoofing
+      const magicCheck = validateFileMagicBytes(req.file.buffer, req.file.mimetype);
+      if (!magicCheck.valid) {
+        res.status(400).json({
+          success: false,
+          data: null,
+          error: 'Validation Error',
+          message: magicCheck.reason || 'File binary signature does not match declared format',
+        });
+        return;
+      }
+
+      // Save file safely using storage abstraction (sanitizes filename, computes SHA-256)
       const storageResult = await storageProvider.saveFile(
         req.file.buffer,
         req.file.originalname,
         req.file.mimetype
       );
 
-      // 3. Deduplication Check by SHA-256 checksum
+      // Deduplication Check by SHA-256 checksum
       const existingDoc = await DocumentRepository.findByChecksum(storageResult.checksum);
       if (existingDoc) {
         res.status(409).json({
+          success: false,
+          data: { document: existingDoc },
           error: 'Conflict',
           message: 'A document with the exact same SHA-256 checksum already exists in the platform',
           document: existingDoc,
@@ -78,7 +115,7 @@ export class DocumentController {
       }
 
       const {
-        projectId = 'prj-gevra',
+        projectId = 'prj-rajmahal-001',
         title,
         mineName,
         blockName,
@@ -86,11 +123,14 @@ export class DocumentController {
         reserveCategory,
         authoringBody,
         reportYear,
+        subsidiary,
+        sourceDepartment,
+        documentDate,
       } = req.body || {};
 
       const documentTitle = title && typeof title === 'string' && title.trim() ? title.trim() : req.file.originalname;
 
-      // 4. Create Document Record
+      // Create Document Record with metadata
       const document = await DocumentRepository.create({
         title: documentTitle,
         filename: storageResult.sanitizedFilename,
@@ -106,21 +146,24 @@ export class DocumentController {
         reserveCategory: reserveCategory || null,
         authoringBody: authoringBody || null,
         reportYear: reportYear ? parseInt(String(reportYear), 10) : null,
+        sourceDepartment: sourceDepartment || null,
+        subsidiary: subsidiary || null,
+        documentDate: documentDate ? new Date(documentDate) : null,
         project: { connect: { id: projectId } },
         uploader: { connect: { id: req.user.id } },
-      });
+      } as any);
 
-      // 5. Create Processing Job (Status: QUEUED)
+      // Create Processing Job
       const job = await ProcessingJobRepository.create({
         status: JobStatus.QUEUED,
-        progressPercent: 10,
+        progressPercent: 5,
         currentStep: 'File Uploaded & SHA-256 Checksum Verified',
         project: { connect: { id: projectId } },
         document: { connect: { id: document.id } },
         user: { connect: { id: req.user.id } },
       });
 
-      // 6. Log Audit Event
+      // Audit Log
       await AuditLogRepository.create({
         organizationId: req.user.organizationId,
         userId: req.user.id,
@@ -136,32 +179,19 @@ export class DocumentController {
         ipAddress: req.ip || req.socket.remoteAddress,
       });
 
-      // Async pipeline execution simulation (Uploaded -> Queued -> Processing -> Completed)
-      setTimeout(async () => {
-        try {
-          await ProcessingJobRepository.updateProgress(
-            job.id,
-            45,
-            'OCR & Metadata Extraction In Progress',
-            JobStatus.PROCESSING
-          );
-          await DocumentRepository.updateStage(document.id, ProcessingStage.OCR_EXTRACTING);
-
-          setTimeout(async () => {
-            await ProcessingJobRepository.updateProgress(
-              job.id,
-              100,
-              'Chunking & Vector Indexing Completed',
-              JobStatus.COMPLETED
-            );
-            await DocumentRepository.updateStage(document.id, ProcessingStage.INDEXED);
-          }, 3000);
-        } catch (_e) {
-          // Ignore background timer errors
-        }
-      }, 2000);
+      // Trigger Real Ingestion Pipeline asynchronously
+      IngestionService.processDocument(document.id, job.id).catch((err) => {
+        console.error(`[Ingestion Pipeline Asynchronous Error]:`, err);
+      });
 
       res.status(201).json({
+        success: true,
+        data: {
+          documentId: document.id,
+          processingStage: document.processingStage,
+          document,
+          processingJob: job,
+        },
         message: 'File successfully uploaded and queued for processing pipeline',
         documentId: document.id,
         processingStage: document.processingStage,
@@ -170,7 +200,12 @@ export class DocumentController {
       });
     } catch (err: any) {
       console.error('[Document Error Upload]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message || 'Failed to process document upload' });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message || 'Failed to process document upload',
+      });
     }
   }
 
@@ -180,14 +215,28 @@ export class DocumentController {
       const job = await ProcessingJobRepository.findById(jobId);
 
       if (!job) {
-        res.status(404).json({ error: 'Not Found', message: 'Processing job not found' });
+        res.status(404).json({
+          success: false,
+          data: null,
+          error: 'Not Found',
+          message: 'Processing job not found',
+        });
         return;
       }
 
-      res.status(200).json({ job });
+      res.status(200).json({
+        success: true,
+        data: { job },
+        job,
+      });
     } catch (err: any) {
       console.error('[Document Error GetJobStatus]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
@@ -196,15 +245,29 @@ export class DocumentController {
       const { projectId } = req.query;
 
       if (!projectId || typeof projectId !== 'string') {
-        res.status(400).json({ error: 'Bad Request', message: 'projectId query parameter is required' });
+        res.status(400).json({
+          success: false,
+          data: null,
+          error: 'Bad Request',
+          message: 'projectId query parameter is required',
+        });
         return;
       }
 
       const documents = await DocumentRepository.listByProject(projectId);
-      res.status(200).json({ documents });
+      res.status(200).json({
+        success: true,
+        data: { documents },
+        documents,
+      });
     } catch (err: any) {
       console.error('[Document Error List]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
@@ -214,28 +277,50 @@ export class DocumentController {
       const document = await DocumentRepository.findById(id);
 
       if (!document) {
-        res.status(404).json({ error: 'Not Found', message: 'Document not found' });
+        res.status(404).json({
+          success: false,
+          data: null,
+          error: 'Not Found',
+          message: 'Document not found',
+        });
         return;
       }
 
-      res.status(200).json({ document });
+      res.status(200).json({
+        success: true,
+        data: { document },
+        document,
+      });
     } catch (err: any) {
       console.error('[Document Error GetById]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
   static async create(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({ error: 'Unauthorized', message: 'User is not authenticated' });
+        res.status(401).json({
+          success: false,
+          data: null,
+          error: 'Unauthorized',
+          message: 'User is not authenticated',
+        });
         return;
       }
 
       const parseResult = createDocumentSchema.safeParse(req.body);
       if (!parseResult.success) {
         res.status(400).json({
+          success: false,
+          data: null,
           error: 'Validation Error',
+          message: 'Invalid document creation fields',
           details: parseResult.error.flatten().fieldErrors,
         });
         return;
@@ -246,6 +331,8 @@ export class DocumentController {
       const existingDoc = await DocumentRepository.findByChecksum(data.checksum);
       if (existingDoc) {
         res.status(409).json({
+          success: false,
+          data: { document: existingDoc },
           error: 'Conflict',
           message: 'A document with the exact same checksum already exists in the system',
           document: existingDoc,
@@ -275,7 +362,7 @@ export class DocumentController {
       const job = await ProcessingJobRepository.create({
         status: JobStatus.QUEUED,
         progressPercent: 0,
-        currentStep: 'Uploaded - Awaiting OCR & Chunking Pipeline',
+        currentStep: 'Uploaded - Queued for Ingestion Pipeline',
         project: { connect: { id: data.projectId } },
         document: { connect: { id: document.id } },
         user: { connect: { id: req.user.id } },
@@ -291,10 +378,20 @@ export class DocumentController {
         ipAddress: req.ip || req.socket.remoteAddress,
       });
 
-      res.status(201).json({ document, processingJob: job });
+      res.status(201).json({
+        success: true,
+        data: { document, processingJob: job },
+        document,
+        processingJob: job,
+      });
     } catch (err: any) {
       console.error('[Document Error Create]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
@@ -305,7 +402,10 @@ export class DocumentController {
 
       if (!parseResult.success) {
         res.status(400).json({
+          success: false,
+          data: null,
           error: 'Validation Error',
+          message: 'Invalid update stage request',
           details: parseResult.error.flatten().fieldErrors,
         });
         return;
@@ -314,10 +414,29 @@ export class DocumentController {
       const { processingStage, errorMessage } = parseResult.data;
       const updated = await DocumentRepository.updateStage(id, processingStage, errorMessage);
 
-      res.status(200).json({ document: updated });
+      if (!updated) {
+        res.status(404).json({
+          success: false,
+          data: null,
+          error: 'Not Found',
+          message: `Document with ID '${id}' not found`,
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: { document: updated },
+        document: updated,
+      });
     } catch (err: any) {
       console.error('[Document Error UpdateStage]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
@@ -327,11 +446,16 @@ export class DocumentController {
       const document = await DocumentRepository.findById(id);
 
       if (!document) {
-        res.status(404).json({ error: 'Not Found', message: 'Document not found' });
+        res.status(404).json({
+          success: false,
+          data: null,
+          error: 'Not Found',
+          message: 'Document not found',
+        });
         return;
       }
 
-      await prisma.document.delete({ where: { id } });
+      await DocumentRepository.delete(id);
 
       if (req.user) {
         await AuditLogRepository.create({
@@ -345,10 +469,20 @@ export class DocumentController {
         });
       }
 
-      res.status(200).json({ message: 'Document successfully deleted', id });
+      res.status(200).json({
+        success: true,
+        data: { id },
+        message: 'Document successfully deleted',
+        id,
+      });
     } catch (err: any) {
       console.error('[Document Error Delete]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message,
+      });
     }
   }
 
@@ -357,23 +491,30 @@ export class DocumentController {
       const documentId = req.params.documentId || req.params.id;
 
       if (!documentId) {
-        res.status(400).json({ error: 'Bad Request', message: 'documentId parameter is required' });
+        res.status(400).json({
+          success: false,
+          data: null,
+          error: 'Bad Request',
+          message: 'documentId parameter is required',
+        });
         return;
       }
 
       const document = await DocumentRepository.findById(documentId);
       if (!document) {
-        res.status(404).json({ error: 'Not Found', message: `Document '${documentId}' not found` });
+        res.status(404).json({
+          success: false,
+          data: null,
+          error: 'Not Found',
+          message: `Document '${documentId}' not found`,
+        });
         return;
       }
 
-      // Idempotency: Safely purge pre-existing chunks for this documentId
-      try {
-        if (process.env.DATABASE_URL) {
+      if (isDatabaseConnected()) {
+        try {
           await prisma.documentChunk.deleteMany({ where: { documentId } });
-        }
-      } catch (_e) {
-        // Fallback for mem-store or environments without full DB connection
+        } catch (_e) {}
       }
 
       let pages = (document as any).pages || [];
@@ -395,11 +536,9 @@ export class DocumentController {
         const cleanText = rawText.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '').trim();
         if (!cleanText) continue;
 
-        // Extract section title header if present
         const firstLine = cleanText.split('\n')[0] || '';
         const sectionTitle = firstLine.length < 60 ? firstLine.replace(/^#+\s*/, '') : 'General';
 
-        // Split by 500 character chunks with 50 char overlap
         const chunkSize = 500;
         const overlap = 50;
         let charPointer = 0;
@@ -429,11 +568,10 @@ export class DocumentController {
         }
       }
 
-      // Store chunks safely in DB or fallback
       let insertedCount = 0;
       for (const chunk of chunksToInsert) {
-        try {
-          if (process.env.DATABASE_URL) {
+        if (isDatabaseConnected()) {
+          try {
             await prisma.documentChunk.create({
               data: {
                 id: chunk.id,
@@ -446,14 +584,11 @@ export class DocumentController {
                 endChar: chunk.endChar,
               },
             });
-          }
-          insertedCount++;
-        } catch (_e) {
-          insertedCount++;
+          } catch (_e) {}
         }
+        insertedCount++;
       }
 
-      // Update stage to INDEXED
       await DocumentRepository.updateStage(documentId, ProcessingStage.INDEXED);
 
       if (req.user) {
@@ -469,6 +604,13 @@ export class DocumentController {
       }
 
       res.status(200).json({
+        success: true,
+        data: {
+          documentId,
+          status: 'COMPLETED',
+          totalChunksIndexed: insertedCount,
+          chunks: chunksToInsert,
+        },
         message: 'Document successfully processed and indexed into vector store',
         documentId,
         status: 'COMPLETED',
@@ -490,7 +632,79 @@ export class DocumentController {
       });
     } catch (err: any) {
       console.error('[Document Indexing Error]:', err);
-      res.status(500).json({ error: 'Internal Server Error', message: err.message || 'Indexing failed' });
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message || 'Indexing failed',
+      });
+    }
+  }
+
+  static async downloadDocument(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const document = await DocumentRepository.findById(id);
+
+      if (!document) {
+        res.status(404).json({
+          success: false,
+          data: null,
+          error: 'Not Found',
+          message: 'Document not found',
+        });
+        return;
+      }
+
+      const buffer = await storageProvider.getFile(document.storagePath);
+      res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${document.filename}"`);
+      res.send(buffer);
+    } catch (err: any) {
+      console.error('[Document Download Error]:', err);
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message || 'Failed to download document',
+      });
+    }
+  }
+
+  static async getTables(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const document = await DocumentRepository.findById(id);
+
+      if (!document) {
+        res.status(404).json({
+          success: false,
+          data: null,
+          error: 'Not Found',
+          message: 'Document not found',
+        });
+        return;
+      }
+
+      const tables = (document as any).tables || [];
+      res.status(200).json({
+        success: true,
+        data: {
+          documentId: id,
+          tables,
+          tableCount: tables.length,
+        },
+        tables,
+      });
+    } catch (err: any) {
+      console.error('[Document GetTables Error]:', err);
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Internal Server Error',
+        message: err.message || 'Failed to get tables',
+      });
     }
   }
 }
+

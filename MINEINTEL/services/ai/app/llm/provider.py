@@ -73,20 +73,101 @@ class MockLLMProvider(LLMProviderBase):
         if "INSUFFICIENT_EVIDENCE_FLAG" in prompt or "No relevant document evidence" in prompt or "insufficient" in prompt.lower() and "grounding" in (system_instruction or "").lower():
             return "Insufficient evidence found in the indexed documents."
 
+        # Extract user question from prompt
+        user_q_match = re.search(r"USER QUESTION:\s*(.*?)(?:\n\nDOCUMENT EVIDENCE|\n\nProvide|$)", prompt, re.DOTALL | re.IGNORECASE)
+        user_query = user_q_match.group(1).strip() if user_q_match else prompt
+        q_lower = user_query.lower()
+
+        # Handle greetings and conversational queries
+        if any(q_lower.startswith(g) for g in ["hi", "hello", "hey", "greetings"]) or q_lower in ["who are you", "what can you do", "help"]:
+            return (
+                "Hello! I am CERA, your AI document intelligence assistant for CMPDI and coal mining operations. "
+                "You can ask me questions about indexed geological reports, proved reserves, borehole logs, seam thickness, stripping ratios, and coal grades (GCV)."
+            )
+
         if "DOCUMENT EVIDENCE CONTEXT:" in prompt:
             snippets = re.findall(r'Snippet:\s*"([^"]+)"', prompt)
-            if snippets:
+            combined_snippets = " ".join(snippets)
+
+            # Determine mine context if present
+            mine = "the mine block"
+            if "gevra" in q_lower or "gevra" in combined_snippets.lower():
+                mine = "Gevra OCP"
+            elif "rajmahal" in q_lower or "rajmahal" in combined_snippets.lower():
+                mine = "Rajmahal Coalfield"
+            elif "singrauli" in q_lower or "singrauli" in combined_snippets.lower():
+                mine = "Singrauli block"
+
+            # 1. Stripping Ratio
+            if "stripping ratio" in q_lower or "overburden ratio" in q_lower:
+                sr_match = re.search(r"stripping ratio of ([\d\.]+)\s*(?:m3/t|m³/tonne|m3/tonne)?", combined_snippets, re.IGNORECASE)
+                if not sr_match:
+                    sr_match = re.search(r"stripping ratio[:\s]+([\d\.]+)", combined_snippets, re.IGNORECASE)
+                if sr_match:
+                    return f"Based on indexed geological records for {mine}, the overburden stripping ratio is {sr_match.group(1)} m³/tonne."
+
+            # 2. Seam Thickness
+            if "thickness" in q_lower or "seam thickness" in q_lower:
+                th_match = re.search(r"(?:average seam thickness of|thickness at|thickness)\s*([\d\.]+)\s*m(?:eters)?", combined_snippets, re.IGNORECASE)
+                if th_match:
+                    return f"Based on indexed geological records for {mine}, the average coal seam thickness is {th_match.group(1)} meters."
+
+            # 3. Proved / Coal Reserves
+            if "reserve" in q_lower or "resource" in q_lower or "proved" in q_lower or "deposit" in q_lower:
+                res_match = re.search(r"(?:proved coal reserve.*?is|geological resource stands at|proved reserve[^\d]*)\s*([\d,\.]+)\s*(?:Million Tonnes|MT)", combined_snippets, re.IGNORECASE)
+                seam_match = re.search(r"(Seam\s+[IVX0-9\/]+)", combined_snippets, re.IGNORECASE)
+                seam_str = f" in {seam_match.group(1)}" if seam_match else ""
+                if res_match:
+                    return f"Based on indexed exploration records for {mine}, the proved coal reserves stand at {res_match.group(1)} Million Tonnes (MT){seam_str}."
+
+            # 4. GCV / Calorific Value / Coal Grade
+            if "gcv" in q_lower or "calorific" in q_lower or "grade" in q_lower:
+                gcv_match = re.search(r"GCV\s*(?:grade\s*([A-Za-z0-9]+))?\s*\(?(\d{4,5})\s*kcal/kg\)?", combined_snippets, re.IGNORECASE)
+                if gcv_match:
+                    grade_str = f" (Grade {gcv_match.group(1)})" if gcv_match.group(1) else ""
+                    return f"Based on indexed borehole records for {mine}, the Gross Calorific Value (GCV) is {gcv_match.group(2)} kcal/kg{grade_str}."
+                gcv_simple = re.search(r"(\d{4,5})\s*kcal/kg", combined_snippets)
+                if gcv_simple:
+                    return f"Based on indexed records for {mine}, the coal Gross Calorific Value (GCV) is {gcv_simple.group(1)} kcal/kg."
+
+            # 5. Ash Content
+            if "ash" in q_lower:
+                ash_match = re.search(r"ash content\s*([\d\.]+(?:\s*%\s*to\s*[\d\.]+)?\s*%)", combined_snippets, re.IGNORECASE)
+                if ash_match:
+                    return f"Based on indexed records for {mine}, the ash content is {ash_match.group(1)}."
+
+            # 6. Comparative query
+            if any(c in q_lower for c in ["compare", "versus", "vs", "difference"]):
                 return (
-                    "Based on the indexed geological records:\n\n" +
-                    "\n".join(f"• {s}" for s in snippets) + "\n\n" +
-                    "[Calculation: Confirmed total proved reserves based on CMPDI borehole logs.]\n" +
-                    "Extracted metrics have been cross-verified with authoritative CIL source records."
+                    "Based on indexed records comparing Gevra OCP and Rajmahal Coalfield:\n\n"
+                    "• Proved Reserves: Gevra has 425.80 MT (Seam V/VI/VII) vs Rajmahal with 1,250.00 MT (Seam III).\n"
+                    "• Seam Thickness: Gevra averages 18.4m vs Rajmahal at 14.2m.\n"
+                    "• Stripping Ratio: Gevra is 2.14 m³/t vs Rajmahal at 1.85 m³/t.\n"
+                    "• Coal Grade (GCV): Gevra is ~4,650 kcal/kg (G11-G13) vs Rajmahal at 4,800 kcal/kg."
                 )
 
-        return (
-            "Based on the indexed mining records, proved coal reserves and seam thickness metrics show structural continuity. "
-            "Extracted figures have been cross-referenced against authoritative CMPDI reports."
-        )
+            # 7. General overview for a specific mine
+            if any(term in q_lower for term in ["overview", "summary", "detail", "tell me about", "information"]):
+                if snippets:
+                    return (
+                        f"Based on indexed geological records for {mine}:\n\n" +
+                        "\n".join(f"• {s}" for s in snippets)
+                    )
+
+            # 8. If snippets exist, find sentences that specifically mention terms from the query
+            q_keywords = [w for w in re.findall(r"\w+", q_lower) if len(w) > 3 and w not in ["what", "which", "where", "about", "tell", "show", "give", "mine", "coal"]]
+            relevant_sentences = []
+            for s in snippets:
+                sentences = re.split(r"(?<=[.!?])\s+", s)
+                for sentence in sentences:
+                    if any(kw in sentence.lower() for kw in q_keywords):
+                        relevant_sentences.append(sentence.strip())
+
+            if relevant_sentences:
+                unique_sentences = list(dict.fromkeys(relevant_sentences))
+                return f"Based on indexed records for {mine}:\n\n" + "\n".join(f"• {s}" for s in unique_sentences)
+
+        return "Insufficient evidence found in the indexed documents."
 
     async def generate_structured_json(
         self,

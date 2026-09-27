@@ -10,6 +10,12 @@ from app.ocr import OCRPipeline, get_ocr_engine
 from app.extraction import MiningInformationExtractor
 from app.embeddings import EmbeddingProviderFactory, EmbeddingProviderError
 from app.rag import DocumentIndexer, DocumentPageInput, IndexingResult
+from app.document_parsers import (
+    PDFDocumentParser,
+    ExcelDocumentParser,
+    DocxDocumentParser,
+    ImageDocumentParser,
+)
 
 app = FastAPI(
     title="MINEINTEL AI Service",
@@ -299,3 +305,160 @@ Vetted by MineIntel AI Engine.
         "report_markdown": report_text,
         "generated_at": datetime.utcnow().isoformat() + "Z"
     }
+
+
+# Unified Ingestion Pipeline Router
+class DocumentIngestRequest(BaseModel):
+    document_id: str
+    file_path: str
+    filename: Optional[str] = None
+    document_type: Optional[str] = None
+    project_id: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    min_confidence_threshold: float = 0.70
+    auto_index: bool = True
+
+
+@app.post("/api/v1/ingest/process-document")
+async def process_document_ingest(req: DocumentIngestRequest):
+    """
+    MineIntel Comprehensive Document Ingestion Pipeline:
+    Validation -> File Classification -> Document-Specific Parsing -> OCR (scanned PDF/Image) ->
+    Table Extraction (JSON with cell coordinates) -> Mining Domain Entity Extraction ->
+    Chunking & Vector Indexing -> Final Processing Status.
+    """
+    import os
+    if not os.path.exists(req.file_path):
+        raise HTTPException(status_code=404, detail=f"Target file not found at path: {req.file_path}")
+
+    filename = req.filename or os.path.basename(req.file_path)
+    ext = os.path.splitext(filename)[1].lower()
+
+    parsed_result: Dict[str, Any] = {}
+    ocr_status = "NOT_NEEDED"
+    ocr_confidence = 1.0
+
+    try:
+        # Step 1: Dispatch to appropriate high-fidelity parser
+        if ext == ".pdf":
+            parser = PDFDocumentParser(min_confidence_threshold=req.min_confidence_threshold)
+            parsed_result = parser.parse_pdf(req.file_path, document_id=req.document_id)
+            ocr_status = parsed_result.get("ocr_status", "NOT_NEEDED")
+            ocr_confidence = parsed_result.get("ocr_confidence", 1.0)
+
+        elif ext in [".xlsx", ".xls", ".csv"]:
+            parser = ExcelDocumentParser()
+            parsed_result = parser.parse_file(req.file_path, document_id=req.document_id)
+            ocr_status = "NOT_NEEDED"
+            ocr_confidence = 1.0
+
+        elif ext in [".docx"]:
+            parser = DocxDocumentParser()
+            parsed_result = parser.parse_document(req.file_path, document_id=req.document_id)
+            ocr_status = "NOT_NEEDED"
+            ocr_confidence = 1.0
+
+        elif ext in [".png", ".jpg", ".jpeg", ".webp", ".tiff"]:
+            parser = ImageDocumentParser(min_confidence_threshold=req.min_confidence_threshold)
+            parsed_result = parser.parse_image(req.file_path, document_id=req.document_id)
+            ocr_status = parsed_result.get("ocr_status", "COMPLETED")
+            ocr_confidence = parsed_result.get("ocr_confidence", 0.0)
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file format '{ext}'. Supported: .pdf, .xlsx, .xls, .csv, .docx, .png, .jpg, .jpeg"
+            )
+
+        # Step 2: Extract Mining Entities and Numerical Records
+        pages = parsed_result.get("pages", [])
+        if not pages and "raw_text" in parsed_result:
+            pages = [{
+                "page_number": 1,
+                "text": parsed_result["raw_text"],
+                "raw_text": parsed_result["raw_text"]
+            }]
+
+        extraction_input = []
+        for idx, p in enumerate(pages):
+            extraction_input.append({
+                "page_number": p.get("page_number", idx + 1),
+                "text": p.get("raw_text") or p.get("text", "")
+            })
+
+        extractor = MiningInformationExtractor(use_llm_assisted=False)
+        extracted_data = extractor.extract_document(document_id=req.document_id, pages=extraction_input)
+        entities_dict = extracted_data.to_dict()
+
+        # Step 3: Vector Indexing (Semantic Chunking & Embedding)
+        indexed_chunks_count = 0
+        if req.auto_index and pages:
+            indexer = DocumentIndexer()
+            index_pages = [
+                DocumentPageInput(
+                    page_id=f"{req.document_id}_p{p.get('page_number', idx + 1)}",
+                    page_number=p.get("page_number", idx + 1),
+                    raw_text=p.get("raw_text") or p.get("text", ""),
+                    document_id=req.document_id,
+                    project_id=req.project_id,
+                    document_type=req.document_type or ext.replace(".", "").upper()
+                )
+                for idx, p in enumerate(pages)
+            ]
+            idx_res = await indexer.index_document_pages(
+                document_id=req.document_id,
+                pages=index_pages,
+                project_id=req.project_id,
+                document_type=req.document_type or ext.replace(".", "").upper(),
+                idempotent_replace=True
+            )
+            indexed_chunks_count = idx_res.total_chunks_indexed
+
+        # Determine overall processing status
+        status = "COMPLETED"
+        if parsed_result.get("needs_review") or ocr_status == "FLAGGED_FOR_REVIEW":
+            status = "PARTIAL"
+
+        return {
+            "success": True,
+            "document_id": req.document_id,
+            "filename": filename,
+            "file_type": ext.replace(".", "").upper(),
+            "page_count": parsed_result.get("page_count", len(pages)),
+            "processing_status": status,
+            "ocr_status": ocr_status,
+            "ocr_confidence": round(ocr_confidence, 4),
+            "tables": parsed_result.get("tables", []),
+            "table_count": len(parsed_result.get("tables", [])),
+            "pages": pages,
+            "entities": entities_dict.get("entities", []),
+            "structured_records": entities_dict.get("structured_records", []),
+            "chunks_indexed": indexed_chunks_count,
+            "raw_text_length": len(parsed_result.get("raw_text", "")),
+            "metadata": {
+                "source_department": req.metadata.get("source_department") if req.metadata else None,
+                "mine": req.metadata.get("mine") if req.metadata else None,
+                "subsidiary": req.metadata.get("subsidiary") if req.metadata else None,
+                "document_date": req.metadata.get("document_date") if req.metadata else None,
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "document_id": req.document_id,
+            "filename": filename,
+            "processing_status": "FAILED",
+            "processing_error": str(e),
+            "ocr_status": "FAILED",
+            "tables": [],
+            "pages": [],
+            "entities": [],
+            "structured_records": [],
+            "chunks_indexed": 0
+        }
+

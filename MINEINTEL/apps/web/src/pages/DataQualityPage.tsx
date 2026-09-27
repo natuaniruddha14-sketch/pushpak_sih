@@ -88,6 +88,7 @@ export const DataQualityPage: React.FC = () => {
 
   // Loading state
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // States
   const [qualityScore, setQualityScore] = useState<any>({
@@ -147,8 +148,9 @@ export const DataQualityPage: React.FC = () => {
         const json = await auditRes.json();
         setAuditLogs(json.logs || []);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load validation quality data:', err);
+      setError(err.message || 'Failed to load validation quality data from server.');
     } finally {
       setLoading(false);
     }
@@ -191,79 +193,95 @@ export const DataQualityPage: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-12">
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-slate-200/90">
         <div>
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
-              <ShieldCheck className="w-5 h-5" />
+          <div className="flex items-center space-x-2">
+            <div className="p-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded">
+              <ShieldCheck className="w-4 h-4" />
             </div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Validation, Traceability & Data Quality</h1>
+            <h1 className="text-base font-bold text-slate-900 tracking-tight">Validation, Traceability & Data Quality</h1>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-0.5">
             Audit numerical extractions, resolve conflicting source values side-by-side, inspect validation rules, and review audit logs.
           </p>
         </div>
 
         <button
           onClick={fetchAllQualityData}
-          className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 font-semibold text-xs rounded-xl flex items-center space-x-2 transition self-start md:self-auto"
+          className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-medium text-xs rounded transition flex items-center space-x-1.5 self-start md:self-auto"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>Refresh Audit</span>
         </button>
       </div>
 
+      {error && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 text-xs rounded flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-700" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={fetchAllQualityData}
+            className="px-2.5 py-1 bg-rose-100 hover:bg-rose-800 text-rose-800 rounded font-mono text-[11px] transition flex items-center space-x-1"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>Retry</span>
+          </button>
+        </div>
+      )}
+
       {/* Health Score KPI Header */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Quality Score */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
-            <ShieldCheck className="w-6 h-6" />
+        <div className="panel-card bg-white border border-slate-200/90 rounded p-3 flex items-center space-x-3">
+          <div className="p-2 bg-emerald-50 border border-emerald-200 rounded text-emerald-700">
+            <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[11px] text-slate-400 font-medium">Overall Quality Score</span>
-            <div className="text-xl font-extrabold text-emerald-400 tracking-tight">{qualityScore.qualityScore}%</div>
-            <span className="text-[10px] text-emerald-400 font-mono flex items-center mt-0.5">
+            <div className="text-lg font-bold font-mono text-emerald-600">{qualityScore.qualityScore}%</div>
+            <span className="text-[10px] text-emerald-700 font-mono flex items-center mt-0.5">
               <CheckCircle2 className="w-3 h-3 mr-0.5" /> High Precision Data
             </span>
           </div>
         </div>
 
         {/* Total Evaluated */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-cyan-400">
-            <Database className="w-6 h-6" />
+        <div className="panel-card bg-white border border-slate-200/90 rounded p-3 flex items-center space-x-3">
+          <div className="p-2 bg-slate-50 border border-slate-200 rounded text-cyan-700">
+            <Database className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[11px] text-slate-400 font-medium">Total Extractions Evaluated</span>
-            <div className="text-xl font-extrabold text-white tracking-tight">{qualityScore.totalRecordsEvaluated} Records</div>
+            <div className="text-lg font-bold font-mono text-slate-900">{qualityScore.totalRecordsEvaluated} Records</div>
             <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">Cross-Validated</span>
           </div>
         </div>
 
         {/* Passed Count */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400">
-            <CheckCircle2 className="w-6 h-6" />
+        <div className="panel-card bg-white border border-slate-200/90 rounded p-3 flex items-center space-x-3">
+          <div className="p-2 bg-slate-50 border border-slate-200 rounded text-indigo-700">
+            <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[11px] text-slate-400 font-medium">Passed Validation</span>
-            <div className="text-xl font-extrabold text-white tracking-tight">{qualityScore.passedValidationCount} Passed</div>
+            <div className="text-lg font-bold font-mono text-slate-900">{qualityScore.passedValidationCount} Passed</div>
             <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">0 Format Errors</span>
           </div>
         </div>
 
         {/* Flagged Anomalies */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400">
-            <AlertTriangle className="w-6 h-6" />
+        <div className="panel-card bg-white border border-slate-200/90 rounded p-3 flex items-center space-x-3">
+          <div className="p-2 bg-amber-50 border border-amber-200 rounded text-amber-700">
+            <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[11px] text-slate-400 font-medium">Flagged Anomalies</span>
-            <div className="text-xl font-extrabold text-amber-400 tracking-tight">{qualityScore.flaggedAnomaliesCount} Items</div>
-            <span className="text-[10px] text-amber-400 font-mono flex items-center mt-0.5">
+            <div className="text-lg font-bold font-mono text-amber-600">{qualityScore.flaggedAnomaliesCount} Items</div>
+            <span className="text-[10px] text-amber-700 font-mono flex items-center mt-0.5">
               <AlertTriangle className="w-3 h-3 mr-0.5" /> Requires Audit Review
             </span>
           </div>
@@ -271,52 +289,52 @@ export const DataQualityPage: React.FC = () => {
       </div>
 
       {/* Tabs Bar */}
-      <div className="flex border-b border-slate-800 space-x-2">
+      <div className="flex border-b border-slate-200/90 space-x-1">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition flex items-center space-x-2 border-b-2 ${
+          className={`px-3 py-2 text-xs font-semibold rounded-t transition flex items-center space-x-1.5 border-b-2 ${
             activeTab === 'overview'
-              ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              ? 'border-blue-500 text-blue-600 bg-slate-100/60'
+              : 'border-transparent text-slate-400 hover:text-slate-800 hover:bg-slate-50'
           }`}
         >
-          <Sliders className="w-4 h-4" />
+          <Sliders className="w-3.5 h-3.5" />
           <span>1. Validation Checks (7 Rules)</span>
         </button>
 
         <button
           onClick={() => setActiveTab('conflicts')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition flex items-center space-x-2 border-b-2 ${
+          className={`px-3 py-2 text-xs font-semibold rounded-t transition flex items-center space-x-1.5 border-b-2 ${
             activeTab === 'conflicts'
-              ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              ? 'border-blue-500 text-blue-600 bg-slate-100/60'
+              : 'border-transparent text-slate-400 hover:text-slate-800 hover:bg-slate-50'
           }`}
         >
-          <AlertTriangle className="w-4 h-4 text-amber-400" />
-          <span>2. Conflicting Values Resolution ({conflicts.length})</span>
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+          <span>2. Conflicting Values ({conflicts.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('traceability')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition flex items-center space-x-2 border-b-2 ${
+          className={`px-3 py-2 text-xs font-semibold rounded-t transition flex items-center space-x-1.5 border-b-2 ${
             activeTab === 'traceability'
-              ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              ? 'border-blue-500 text-blue-600 bg-slate-100/60'
+              : 'border-transparent text-slate-400 hover:text-slate-800 hover:bg-slate-50'
           }`}
         >
-          <Tag className="w-4 h-4" />
+          <Tag className="w-3.5 h-3.5" />
           <span>3. Numerical Traceability Log</span>
         </button>
 
         <button
           onClick={() => setActiveTab('audit')}
-          className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition flex items-center space-x-2 border-b-2 ${
+          className={`px-3 py-2 text-xs font-semibold rounded-t transition flex items-center space-x-1.5 border-b-2 ${
             activeTab === 'audit'
-              ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              ? 'border-blue-500 text-blue-600 bg-slate-100/60'
+              : 'border-transparent text-slate-400 hover:text-slate-800 hover:bg-slate-50'
           }`}
         >
-          <Clock className="w-4 h-4" />
+          <Clock className="w-3.5 h-3.5" />
           <span>4. System Audit Trail</span>
         </button>
       </div>
@@ -326,22 +344,22 @@ export const DataQualityPage: React.FC = () => {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {validationChecks.map((check) => (
-              <div key={check.id} className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-3">
+              <div key={check.id} className="panel-card bg-white border border-slate-200/90 rounded p-3.5 space-y-2.5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+                    <h3 className="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
                       <span>{check.name}</span>
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1">{check.description}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{check.description}</p>
                   </div>
 
                   <span
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold ${
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
                       check.status === 'ACTION_REQUIRED'
-                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        ? 'bg-amber-50 text-amber-600 border border-amber-200'
                         : check.status === 'WARNING'
-                        ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                        : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                        : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                     }`}
                   >
                     {check.anomalyCount} Anomalies
@@ -349,13 +367,13 @@ export const DataQualityPage: React.FC = () => {
                 </div>
 
                 {check.sampleAnomalies && check.sampleAnomalies.length > 0 && (
-                  <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
+                  <div className="space-y-1.5 pt-2 border-t border-slate-200/90">
                     <span className="text-[10px] text-slate-400 font-mono block">Sample Validation Anomalies:</span>
                     {check.sampleAnomalies.map((sa: any, sIdx: number) => (
-                      <div key={sIdx} className="p-2 bg-slate-950 border border-slate-800 rounded-xl text-[11px] text-slate-300 font-mono">
-                        {sa.document && <div>📄 <span className="text-amber-400">{sa.document}</span> (p. {sa.page})</div>}
+                      <div key={sIdx} className="p-2 bg-slate-50 border border-slate-200/90 rounded text-[11px] text-slate-700 font-mono">
+                        {sa.document && <div>📄 <span className="text-blue-700">{sa.document}</span> (p. {sa.page})</div>}
                         {sa.rawSnippet && <div className="text-slate-400 italic">"{sa.rawSnippet}"</div>}
-                        {sa.project && <div>Block: <strong className="text-white">{sa.project}</strong> | {sa.metric}: {sa.sourceA} vs {sa.sourceB}</div>}
+                        {sa.project && <div>Block: <strong className="text-slate-800">{sa.project}</strong> | {sa.metric}: {sa.sourceA} vs {sa.sourceB}</div>}
                         {sa.coverPeriod && <div>Cover Period: {sa.coverPeriod} vs Table Period: {sa.tablePeriod}</div>}
                       </div>
                     ))}
@@ -370,88 +388,88 @@ export const DataQualityPage: React.FC = () => {
       {/* Tab 2: Conflicting Values Resolution Side-by-Side Comparison */}
       {activeTab === 'conflicts' && (
         <div className="space-y-6">
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center space-x-3 text-amber-300 text-xs">
-            <Info className="w-5 h-5 flex-shrink-0 text-amber-400" />
+          <div className="bg-amber-50 border border-amber-200 rounded p-3 flex items-center space-x-2.5 text-amber-600 text-xs">
+            <Info className="w-4 h-4 flex-shrink-0 text-amber-700" />
             <div>
-              <span className="font-bold">Conflict Resolution Policy:</span> When conflicting source values are detected across documents, MineIntel preserves both values without auto-overwriting. Operators can inspect exact page citations and confidence scores below.
+              <span className="font-bold">Conflict Resolution Policy:</span> When conflicting source values are detected across documents, CERA preserves both values without auto-overwriting. Operators can inspect exact page citations and confidence scores below.
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {conflicts.map((c) => (
-              <div key={c.id} className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+              <div key={c.id} className="panel-card bg-white border border-slate-200/90 rounded p-4 space-y-3">
                 {/* Conflict Header Banner */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-2.5 border-b border-slate-200/90">
                   <div>
-                    <div className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center space-x-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    <div className="text-xs font-mono font-bold text-amber-700 uppercase tracking-wider flex items-center space-x-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
                       <span>{c.alertMessage}</span>
                     </div>
-                    <h3 className="text-base font-bold text-white mt-1">
-                      {c.project} — <span className="text-cyan-400">{c.metricName}</span>
+                    <h3 className="text-xs font-bold text-slate-900 mt-0.5">
+                      {c.project} — <span className="text-blue-700">{c.metricName}</span>
                     </h3>
                   </div>
                 </div>
 
                 {/* Side-by-Side Comparison Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {/* Source A */}
-                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                      <span className="text-xs font-bold text-amber-400 font-mono">Source A (Primary)</span>
-                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                        {Math.round(c.sourceA.confidence * 100)}% Confidence
+                  <div className="bg-slate-50 border border-slate-200/90 rounded p-3 space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-slate-200/90 pb-1.5">
+                      <span className="text-xs font-bold text-slate-700 font-mono">Source A (Primary)</span>
+                      <span className="text-[10px] font-mono text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                        {Math.round(c.sourceA.confidence * 100)}% Conf.
                       </span>
                     </div>
 
-                    <div className="space-y-1.5 text-xs font-mono">
-                      <div className="text-slate-400">Document: <span className="text-white font-bold">{c.sourceA.documentName}</span></div>
-                      <div className="text-slate-400">Page Reference: <span className="text-amber-400 font-bold">Page {c.sourceA.pageNumber}</span></div>
-                      <div className="text-slate-400">Extracted Value: <span className="text-lg font-extrabold text-amber-400">{c.sourceA.value} {c.sourceA.unit}</span></div>
-                      <div className="text-slate-400">Extraction Method: <span className="text-cyan-400">{c.sourceA.extractionMethod}</span></div>
-                      <div className="text-[10px] text-slate-500">Timestamp: {new Date(c.sourceA.timestamp).toLocaleString()}</div>
+                    <div className="space-y-1 text-xs font-mono">
+                      <div className="text-slate-400">Document: <span className="text-slate-800 font-bold">{c.sourceA.documentName}</span></div>
+                      <div className="text-slate-400">Page: <span className="text-blue-600 font-bold">Page {c.sourceA.pageNumber}</span></div>
+                      <div className="text-slate-400">Value: <span className="text-base font-bold text-slate-900">{c.sourceA.value} {c.sourceA.unit}</span></div>
+                      <div className="text-slate-400">Method: <span className="text-blue-700">{c.sourceA.extractionMethod}</span></div>
+                      <div className="text-[10px] text-slate-400">{new Date(c.sourceA.timestamp).toLocaleString()}</div>
                     </div>
 
-                    <div className="p-2.5 bg-slate-900 rounded-lg text-[11px] text-slate-300 italic border border-slate-800">
+                    <div className="p-2 bg-white rounded text-[11px] text-slate-400 italic border border-slate-200/90">
                       "{c.sourceA.snippet}"
                     </div>
 
                     <button
                       onClick={() => handleOpenDocViewer(c.sourceA.documentName, c.sourceA.pageNumber, c.sourceA.snippet)}
-                      className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-sans font-semibold flex items-center justify-center space-x-1.5 transition"
+                      className="w-full py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded text-xs font-sans font-medium flex items-center justify-center space-x-1.5 transition"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Inspect Source A Document (p.{c.sourceA.pageNumber})</span>
+                      <ExternalLink className="w-3 h-3" />
+                      <span>Inspect Source A (p.{c.sourceA.pageNumber})</span>
                     </button>
                   </div>
 
                   {/* Source B */}
-                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                      <span className="text-xs font-bold text-cyan-400 font-mono">Source B (Alternative)</span>
-                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                        {Math.round(c.sourceB.confidence * 100)}% Confidence
+                  <div className="bg-slate-50 border border-slate-200/90 rounded p-3 space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-slate-200/90 pb-1.5">
+                      <span className="text-xs font-bold text-slate-700 font-mono">Source B (Alternative)</span>
+                      <span className="text-[10px] font-mono text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                        {Math.round(c.sourceB.confidence * 100)}% Conf.
                       </span>
                     </div>
 
-                    <div className="space-y-1.5 text-xs font-mono">
-                      <div className="text-slate-400">Document: <span className="text-white font-bold">{c.sourceB.documentName}</span></div>
-                      <div className="text-slate-400">Page Reference: <span className="text-cyan-400 font-bold">Page {c.sourceB.pageNumber}</span></div>
-                      <div className="text-slate-400">Extracted Value: <span className="text-lg font-extrabold text-cyan-400">{c.sourceB.value} {c.sourceB.unit}</span></div>
-                      <div className="text-slate-400">Extraction Method: <span className="text-cyan-400">{c.sourceB.extractionMethod}</span></div>
-                      <div className="text-[10px] text-slate-500">Timestamp: {new Date(c.sourceB.timestamp).toLocaleString()}</div>
+                    <div className="space-y-1 text-xs font-mono">
+                      <div className="text-slate-400">Document: <span className="text-slate-800 font-bold">{c.sourceB.documentName}</span></div>
+                      <div className="text-slate-400">Page: <span className="text-cyan-700 font-bold">Page {c.sourceB.pageNumber}</span></div>
+                      <div className="text-slate-400">Value: <span className="text-base font-bold text-slate-900">{c.sourceB.value} {c.sourceB.unit}</span></div>
+                      <div className="text-slate-400">Method: <span className="text-blue-700">{c.sourceB.extractionMethod}</span></div>
+                      <div className="text-[10px] text-slate-400">{new Date(c.sourceB.timestamp).toLocaleString()}</div>
                     </div>
 
-                    <div className="p-2.5 bg-slate-900 rounded-lg text-[11px] text-slate-300 italic border border-slate-800">
+                    <div className="p-2 bg-white rounded text-[11px] text-slate-400 italic border border-slate-200/90">
                       "{c.sourceB.snippet}"
                     </div>
 
                     <button
                       onClick={() => handleOpenDocViewer(c.sourceB.documentName, c.sourceB.pageNumber, c.sourceB.snippet)}
-                      className="w-full py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-sans font-semibold flex items-center justify-center space-x-1.5 transition"
+                      className="w-full py-1.5 bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 rounded text-xs font-sans font-medium flex items-center justify-center space-x-1.5 transition"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Inspect Source B Document (p.{c.sourceB.pageNumber})</span>
+                      <ExternalLink className="w-3 h-3" />
+                      <span>Inspect Source B (p.{c.sourceB.pageNumber})</span>
                     </button>
                   </div>
                 </div>
@@ -463,14 +481,14 @@ export const DataQualityPage: React.FC = () => {
 
       {/* Tab 3: Numerical Traceability Log */}
       {activeTab === 'traceability' && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-800">
+        <div className="panel-card bg-white border border-slate-200/90 rounded p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2.5 border-b border-slate-200/90">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                <Tag className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
+                <Tag className="w-3.5 h-3.5 text-blue-700" />
                 <span>Extracted Numerical Values Traceability Log</span>
               </h3>
-              <p className="text-xs text-slate-400">Maintains value, unit, document, page, extraction method, confidence, and timestamp for every extraction.</p>
+              <p className="text-[11px] text-slate-400">Maintains value, unit, document, page, extraction method, confidence, and timestamp for every extraction.</p>
             </div>
 
             <div className="relative">
@@ -479,52 +497,52 @@ export const DataQualityPage: React.FC = () => {
                 placeholder="Filter by metric, project, or method..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500/50"
+                className="bg-slate-50 border border-slate-200 rounded pl-8 pr-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
               />
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-slate-950 text-slate-400 font-mono text-[10px] uppercase border-b border-slate-800">
+            <table className="enterprise-table">
+              <thead>
                 <tr>
-                  <th className="p-3">Metric & Project</th>
-                  <th className="p-3">Extracted Value</th>
-                  <th className="p-3">Unit</th>
-                  <th className="p-3">Document & Page</th>
-                  <th className="p-3">Extraction Method</th>
-                  <th className="p-3">Confidence</th>
-                  <th className="p-3 text-right">Timestamp</th>
+                  <th>Metric & Project</th>
+                  <th>Extracted Value</th>
+                  <th>Unit</th>
+                  <th>Document & Page</th>
+                  <th>Extraction Method</th>
+                  <th>Confidence</th>
+                  <th className="text-right">Timestamp</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-mono">
                 {filteredTraceability.map((row) => (
-                  <tr key={row.id} className="hover:bg-slate-800/40 transition">
-                    <td className="p-3">
-                      <div className="font-sans font-bold text-white">{row.metricName}</div>
-                      <div className="text-[10px] text-cyan-400">{row.project}</div>
+                  <tr key={row.id} className="hover:bg-slate-50 transition">
+                    <td>
+                      <div className="font-sans font-bold text-slate-800">{row.metricName}</div>
+                      <div className="text-[10px] text-blue-700">{row.project}</div>
                     </td>
-                    <td className="p-3 font-bold text-amber-400">{row.value.toLocaleString()}</td>
-                    <td className="p-3 text-slate-400">{row.unit}</td>
-                    <td className="p-3">
+                    <td className="font-bold text-slate-900">{row.value.toLocaleString()}</td>
+                    <td className="text-slate-400">{row.unit}</td>
+                    <td>
                       <button
                         onClick={() => handleOpenDocViewer(row.document, row.page)}
-                        className="text-[10px] text-amber-400 hover:underline flex items-center space-x-1 font-sans"
+                        className="text-[10px] text-blue-700 hover:underline flex items-center space-x-1 font-sans"
                       >
                         <span>{row.document} (p. {row.page})</span>
-                        <ExternalLink className="w-3 h-3" />
+                        <ExternalLink className="w-2.5 h-2.5" />
                       </button>
                     </td>
-                    <td className="p-3">
-                      <span className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] border border-slate-700">
+                    <td>
+                      <span className="px-1.5 py-0.5 bg-slate-50 text-slate-700 rounded text-[10px] border border-slate-200/90">
                         {row.extractionMethod}
                       </span>
                     </td>
-                    <td className="p-3">
-                      <span className="text-emerald-400 font-bold">{Math.round(row.confidence * 100)}%</span>
+                    <td>
+                      <span className="text-emerald-700 font-bold">{Math.round(row.confidence * 100)}%</span>
                     </td>
-                    <td className="p-3 text-right text-slate-500 text-[10px]">
+                    <td className="text-right text-slate-400 text-[10px]">
                       {new Date(row.timestamp).toLocaleTimeString()}
                     </td>
                   </tr>
@@ -537,42 +555,42 @@ export const DataQualityPage: React.FC = () => {
 
       {/* Tab 4: System Audit Trail */}
       {activeTab === 'audit' && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="panel-card bg-white border border-slate-200/90 rounded p-4 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-200/90 pb-2.5">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
+                <Clock className="w-3.5 h-3.5 text-blue-700" />
                 <span>System Pipeline Audit Trail</span>
               </h3>
-              <p className="text-xs text-slate-400">Audit logs for uploads, processing, extraction, indexing, queries, and report generation</p>
+              <p className="text-[11px] text-slate-400">Audit logs for uploads, processing, extraction, indexing, queries, and report generation</p>
             </div>
           </div>
 
-          <div className="space-y-2 font-mono">
+          <div className="space-y-1.5 font-mono">
             {auditLogs.map((log) => (
-              <div key={log.id} className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                <div className="flex items-center space-x-3">
+              <div key={log.id} className="p-2.5 bg-slate-50 border border-slate-200/90 rounded flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center space-x-2.5">
                   <span
-                    className={`px-2 py-1 rounded text-[10px] font-bold ${
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                       log.action === 'DOCUMENT_UPLOAD'
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        ? 'bg-amber-50 text-amber-600 border border-amber-200'
                         : log.action === 'DOCUMENT_PROCESSING'
-                        ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                        ? 'bg-blue-50 text-blue-600 border border-blue-200'
                         : log.action === 'NUMERICAL_EXTRACTION'
-                        ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                        ? 'bg-purple-50 text-purple-600 border border-purple-200'
                         : log.action === 'VECTOR_INDEXING'
-                        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                        ? 'bg-indigo-50 text-indigo-600 border border-indigo-200'
                         : log.action === 'RAG_QUERY'
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : 'bg-slate-800 text-slate-300 border border-slate-700'
+                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                        : 'bg-white text-slate-700 border border-slate-200'
                     }`}
                   >
                     {log.action}
                   </span>
 
                   <div>
-                    <span className="text-white font-sans font-bold">{log.entityType}</span>
-                    <span className="text-[10px] text-slate-500 ml-2">ID: {log.entityId}</span>
+                    <span className="text-slate-800 font-sans font-bold">{log.entityType}</span>
+                    <span className="text-[10px] text-slate-400 ml-2">ID: {log.entityId}</span>
                     {log.details && (
                       <div className="text-[11px] text-slate-400 font-sans mt-0.5">
                         {JSON.stringify(log.details)}
@@ -581,7 +599,7 @@ export const DataQualityPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="text-[10px] text-slate-500 flex items-center space-x-3 self-end sm:self-auto">
+                <div className="text-[10px] text-slate-400 flex items-center space-x-3 self-end sm:self-auto">
                   <span>IP: {log.ipAddress || '127.0.0.1'}</span>
                   <span>{new Date(log.createdAt).toLocaleString()}</span>
                 </div>

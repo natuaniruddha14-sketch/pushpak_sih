@@ -1,12 +1,12 @@
-import { prisma } from '../lib/prisma';
+import { prisma, isDatabaseConnected } from '../lib/prisma';
 import { Project, Prisma } from '@prisma/client';
 import { memStore } from '../lib/mem-store';
 import crypto from 'crypto';
 
 export class ProjectRepository {
   static async findById(id: string): Promise<Project | null> {
-    try {
-      if (process.env.DATABASE_URL) {
+    if (isDatabaseConnected()) {
+      try {
         const p = await prisma.project.findUnique({
           where: { id },
           include: {
@@ -16,23 +16,22 @@ export class ProjectRepository {
           },
         });
         if (p) return p;
-      }
-    } catch (_err) {}
+      } catch (_err) {}
+    }
 
     await memStore.initializeDefaults();
     const prj = memStore.projects.get(id);
     if (prj) return prj as unknown as Project;
-    if (memStore.projects.size > 0) return Array.from(memStore.projects.values())[0] as unknown as Project;
     return null;
   }
 
   static async findByCode(code: string): Promise<Project | null> {
-    try {
-      if (process.env.DATABASE_URL) {
+    if (isDatabaseConnected()) {
+      try {
         const p = await prisma.project.findUnique({ where: { code } });
         if (p) return p;
-      }
-    } catch (_err) {}
+      } catch (_err) {}
+    }
 
     await memStore.initializeDefaults();
     for (const prj of memStore.projects.values()) {
@@ -44,11 +43,11 @@ export class ProjectRepository {
   }
 
   static async create(data: Prisma.ProjectCreateInput): Promise<Project> {
-    try {
-      if (process.env.DATABASE_URL) {
+    if (isDatabaseConnected()) {
+      try {
         return await prisma.project.create({ data });
-      }
-    } catch (_err) {}
+      } catch (_err) {}
+    }
 
     await memStore.initializeDefaults();
     const id = 'prj-' + crypto.randomUUID().substring(0, 8);
@@ -74,8 +73,8 @@ export class ProjectRepository {
   }
 
   static async listByOrganization(organizationId: string): Promise<Project[]> {
-    try {
-      if (process.env.DATABASE_URL) {
+    if (isDatabaseConnected()) {
+      try {
         return await prisma.project.findMany({
           where: { organizationId },
           include: {
@@ -84,12 +83,24 @@ export class ProjectRepository {
           },
           orderBy: { updatedAt: 'desc' },
         });
-      }
-    } catch (_err) {}
+      } catch (_err) {}
+    }
 
     await memStore.initializeDefaults();
     return Array.from(memStore.projects.values()).filter(
       (p) => p.organizationId === organizationId
     ) as unknown as Project[];
+  }
+
+  static async delete(id: string): Promise<boolean> {
+    if (isDatabaseConnected()) {
+      try {
+        await prisma.project.delete({ where: { id } });
+        return true;
+      } catch (_err) {}
+    }
+
+    await memStore.initializeDefaults();
+    return memStore.projects.delete(id);
   }
 }

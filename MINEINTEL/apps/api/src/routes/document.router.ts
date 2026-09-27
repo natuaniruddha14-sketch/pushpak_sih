@@ -11,6 +11,8 @@ router.use(authenticateToken);
 router.get('/', DocumentController.listByProject);
 router.get('/jobs/:jobId', DocumentController.getJobStatus);
 router.get('/:id', DocumentController.getById);
+router.get('/:id/download', DocumentController.downloadDocument);
+router.get('/:id/tables', DocumentController.getTables);
 
 // Upload Endpoints (supports multipart and base64 JSON body fallbacks)
 router.post(

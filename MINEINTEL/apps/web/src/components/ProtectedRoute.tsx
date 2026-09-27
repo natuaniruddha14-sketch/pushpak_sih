@@ -8,11 +8,11 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-mining-900 text-slate-100 flex flex-col items-center justify-center space-y-4">
-        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 animate-pulse">
+      <div className="min-h-screen bg-mining-900 text-slate-900 flex flex-col items-center justify-center space-y-4">
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-700 animate-pulse">
           <Cpu className="w-8 h-8" />
         </div>
-        <div className="text-sm font-mono text-slate-400">Authenticating MINEINTEL Session...</div>
+        <div className="text-sm font-mono text-slate-400">Authenticating CERA Session...</div>
       </div>
     );
   }
