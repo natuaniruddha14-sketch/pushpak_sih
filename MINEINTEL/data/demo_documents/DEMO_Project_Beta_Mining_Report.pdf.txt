@@ -1,0 +1,27 @@
+
+================================================================================
+                      MINEINTEL SYNTHETIC DEMO DATASET                          
+  DISCLAIMER: DEMONSTRATION DATA ONLY — NOT OFFICIAL CMPDI / CIL RECORDS       
+================================================================================
+
+# DEMO PROJECT BETA MINING & FEASIBILITY REPORT (FY 2024-25)
+**Document ID:** DEMO-DOC-BETA-2025  
+**Project Name:** DEMO Project Beta — Dipka Sector West  
+**Reporting Period:** 2024-25  
+**Authoring Body:** CMPDI Regional Institute-V (Synthetic Demo Unit)  
+**Security Classification:** DEMONSTRATION DATA ONLY  
+
+---
+
+## 1. Executive Overview & Reserve Categorization (Page 1)
+DEMO Project Beta encompasses 1,420 hectares of coal-bearing terrain. Evaluated proved reserves stand at **310.40 MT** under UNFC Code 111 categorization, with indicated reserves of **62.00 MT**.
+
+## 2. Operational Metrics & Mining Method (Page 2)
+- **Annual Production Capacity:** 38.20 Million Tonnes (MT)
+- **Overburden Stripping Ratio:** 1.95 m³/tonne
+- **Average Seam Thickness:** 15.20 meters
+- **Coal Quality:** Grade G12 (**4,100 kcal/kg**)
+- **Excavation Fleet:** 4 Draglines (24/96 scale), 14 Surface Miners, 42 Shovel-Dumper units
+
+## 3. Hydrology & Pit Dewatering (Page 3)
+Groundwater inflow monitoring recorded an average pit sump discharge of **8,400 m³/day** during dry season and **12,200 m³/day** during peak monsoon.

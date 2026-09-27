@@ -1,0 +1,22 @@
+
+================================================================================
+                      MINEINTEL SYNTHETIC DEMO DATASET                          
+  DISCLAIMER: DEMONSTRATION DATA ONLY — NOT OFFICIAL CMPDI / CIL RECORDS       
+================================================================================
+
+# DEMO GEOLOGICAL ASSESSMENT & CORE DRILLING DOSSIER
+**Document ID:** DEMO-DOC-GEOLOGY-2025  
+**Project Name:** Synthetic Coalfield Core Drilling Survey  
+**Reporting Period:** 2024-25  
+**Security Classification:** DEMONSTRATION DATA ONLY  
+
+---
+
+## 1. Structural Geology & Seam Formation (Page 1)
+Core logging across 120 exploratory boreholes reveals a stable Barakar Formation stratigraphy. Coal seam thickness exhibits uniform deposition across the central basin, reaching a maximum thickness of **21.0 meters** in the Kusmunda sector.
+
+## 2. UNFC Coal Resource Classification Table (Page 2)
+- **Proved Coal Reserves (111):** 1,622.00 MT (Cumulative across 5 demo blocks)
+- **Indicated Coal Reserves (221):** 352.80 MT
+- **Inferred Coal Reserves (333):** 118.90 MT
+- **Average Seam Dip:** 3° to 7°

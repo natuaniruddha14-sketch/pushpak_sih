@@ -1,0 +1,23 @@
+
+================================================================================
+                      MINEINTEL SYNTHETIC DEMO DATASET                          
+  DISCLAIMER: DEMONSTRATION DATA ONLY — NOT OFFICIAL CMPDI / CIL RECORDS       
+================================================================================
+
+# DEMO GROUNDWATER HYDROLOGY ASSESSMENT REPORT
+**Document ID:** DEMO-DOC-HYDROLOGY-2025  
+**Target Basin:** Synthetic Open-Cast Mining Basins  
+**Reporting Period:** 2024-25  
+**Security Classification:** DEMONSTRATION DATA ONLY  
+
+---
+
+## 1. Hydrogeological Observations & Pit Inflow (Page 1)
+Piezometric head monitoring network across 24 observation wells indicates unconfined to semi-confined aquifer behavior in the upper sandstone formation.
+
+## 2. Monsoon Dewatering Metrics (Page 2)
+- **Peak Monsoon Pit Inflow:** **14,500 m³/day** (Kusmunda pit sump)
+- **Average Pit Inflow:** 9,200 m³/day (Gevra pit sump)
+- **Aquifer Transmissivity:** 142 m²/day
+- **Storage Coefficient:** 0.0025
+- **Dewatering Infrastructure:** 8 High-head submersible pumps (250 HP) deployed at primary quarry sump.

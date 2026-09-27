@@ -1,0 +1,23 @@
+
+================================================================================
+                      MINEINTEL SYNTHETIC DEMO DATASET                          
+  DISCLAIMER: DEMONSTRATION DATA ONLY — NOT OFFICIAL CMPDI / CIL RECORDS       
+================================================================================
+
+# DEMO ENVIRONMENTAL MONITORING & EMP COMPLIANCE REPORT
+**Document ID:** DEMO-DOC-ENV-2025  
+**Scope:** Air, Water, Noise & Dust Suppression Audit  
+**Reporting Period:** 2024-25  
+**Security Classification:** DEMONSTRATION DATA ONLY  
+
+---
+
+## 1. Ambient Air Quality Audit (Page 1)
+Continuous Ambient Air Quality Monitoring Systems (CAAQMS) recorded the following 24-hour averages:
+- **Particulate Matter (PM10):** 68.4 µg/m³ (Compliant with 100 µg/m³ standard)
+- **Particulate Matter (PM2.5):** 32.1 µg/m³ (Compliant with 60 µg/m³ standard)
+- **Sulfur Dioxide (SO2):** 14.2 µg/m³
+- **Nitrogen Oxides (NOx):** 21.8 µg/m³
+
+## 2. Effluent Treatment & Dust Suppression (Page 2)
+Mine discharge water is treated through oil-grease traps and settling ponds before recycling. 100% haul roads covered with high-pressure mobile water sprinklers.

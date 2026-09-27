@@ -1,0 +1,34 @@
+
+================================================================================
+                      MINEINTEL SYNTHETIC DEMO DATASET                          
+  DISCLAIMER: DEMONSTRATION DATA ONLY — NOT OFFICIAL CMPDI / CIL RECORDS       
+================================================================================
+
+# DEMO PROJECT ALPHA MINING & EXPANSION REPORT (FY 2024-25)
+**Document ID:** DEMO-DOC-ALPHA-2025  
+**Project Name:** DEMO Project Alpha — Gevra Sector B  
+**Reporting Period:** 2024-25  
+**Authoring Body:** CMPDI Regional Institute-V (Synthetic Demo Unit)  
+**Security Classification:** DEMONSTRATION DATA ONLY  
+
+---
+
+## 1. Executive Summary & Production Overview (Page 1)
+DEMO Project Alpha represents a premier open-cast coal mining block operating under synthetic trial guidelines. Annual production capacity for reporting period FY 2024-25 is verified at **70.50 Million Tonnes (MT)**. Total proved coal reserves are estimated at **425.80 MT** within depth limits of 220 meters.
+
+## 2. Geological Seam Parameters & Stratigraphy (Page 2)
+Cross-section analysis from 42 core boreholes confirms the following seam geometry:
+- **Target Seams:** Seam V (Upper Gevra) & Seam VI/VII (Combined Lower Seam)
+- **Cumulative Seam Thickness:** 18.40 meters (Range: 15.2m to 21.4m)
+- **Sub-crop Dip:** 4° to 6° South-West
+- **Coal Quality Grade:** GCV Grade Band G11 (**4,400 kcal/kg**)
+- **Proximate Quality Metrics:** Ash Content 34.20%, Moisture 7.80%, Volatile Matter 24.50%
+
+## 3. Overburden Removal & Stripping Ratio Compliance (Page 3)
+| Sector Bench | Coal Production (MT) | Overburden Volume (Mm³) | Stripping Ratio (m³/tonne) | Bench Height (m) |
+| :--- | :--- | :--- | :--- | :--- |
+| Quarry Bench North | 32.10 MT | 68.70 Mm³ | 2.14 m³/t | 15.0 m |
+| Quarry Bench South | 38.40 MT | 82.18 Mm³ | 2.14 m³/t | 18.0 m |
+| **Total Block Alpha** | **70.50 MT** | **150.88 Mm³** | **2.14 m³/t (Avg)** | **16.5 m (Avg)** |
+
+*Page 4: Verified against Synthetic Borehole Logs BH-701 to BH-742.*

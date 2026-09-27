@@ -1,0 +1,1 @@
+# MINEINTEL AI Service Package

@@ -1,0 +1,51 @@
+{
+  "disclaimer": "MINEINTEL SYNTHETIC DEMONSTRATION DATASET - NOT OFFICIAL CMPDI/CIL DATA",
+  "sheetName": "Mining_Metrics_Master_FY25",
+  "records": [
+    {
+      "project": "DEMO Project Alpha",
+      "year": "2024-25",
+      "productionMt": 70.5,
+      "provedMt": 425.8,
+      "strippingRatio": 2.14,
+      "seamThickness": 18.4,
+      "gcv": 4400
+    },
+    {
+      "project": "DEMO Project Beta",
+      "year": "2024-25",
+      "productionMt": 38.2,
+      "provedMt": 310.4,
+      "strippingRatio": 1.95,
+      "seamThickness": 15.2,
+      "gcv": 4100
+    },
+    {
+      "project": "Kusmunda OCP",
+      "year": "2024-25",
+      "productionMt": 46.8,
+      "provedMt": 380,
+      "strippingRatio": 2.45,
+      "seamThickness": 21,
+      "gcv": 4700
+    },
+    {
+      "project": "Rajmahal OCP",
+      "year": "2024-25",
+      "productionMt": 22.4,
+      "provedMt": 215.6,
+      "strippingRatio": 3.1,
+      "seamThickness": 12.8,
+      "gcv": 3800
+    },
+    {
+      "project": "Singrauli Block",
+      "year": "2024-25",
+      "productionMt": 31,
+      "provedMt": 290.2,
+      "strippingRatio": 2.3,
+      "seamThickness": 16.5,
+      "gcv": 4500
+    }
+  ]
+}

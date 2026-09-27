@@ -1,0 +1,21 @@
+
+================================================================================
+                      MINEINTEL SYNTHETIC DEMO DATASET                          
+  DISCLAIMER: DEMONSTRATION DATA ONLY — NOT OFFICIAL CMPDI / CIL RECORDS       
+================================================================================
+
+# DEMO MINE LAND RECLAMATION & AFFORESTATION DOSSIER
+**Document ID:** DEMO-DOC-RECLAMATION-2025  
+**Target Sector:** Post-Mining Overburden Dump Sector  
+**Reporting Period:** 2024-25  
+**Security Classification:** DEMONSTRATION DATA ONLY  
+
+---
+
+## 1. Progressive Backfilling & Dump Slope Stability (Page 1)
+Internal backfilling has progressed concurrently with coal extraction. Overburden dump slopes have been reshaped to a stable angle of 28 degrees.
+
+## 2. Biological Reclamation Statistics (Page 2)
+- **Reclaimed Area (Biological):** 145.0 Hectares
+- **Tree Plantation Density:** **2,500 saplings per hectare** (Native species: Neem, Acacia, Sheesham)
+- **Topsoil Management:** 1.45 Million m³ topsoil preserved in dedicated storage bunds with biological stabilization.

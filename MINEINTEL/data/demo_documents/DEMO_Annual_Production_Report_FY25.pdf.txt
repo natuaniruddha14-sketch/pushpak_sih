@@ -1,0 +1,24 @@
+
+================================================================================
+                      MINEINTEL SYNTHETIC DEMO DATASET                          
+  DISCLAIMER: DEMONSTRATION DATA ONLY — NOT OFFICIAL CMPDI / CIL RECORDS       
+================================================================================
+
+# DEMO CIL SUBSIDIARY ANNUAL PRODUCTION REPORT (FY 2024-25)
+**Document ID:** DEMO-DOC-PROD-AUDIT-2025  
+**Scope:** Multi-Mine Sector Synthesis  
+**Reporting Period:** 2024-25  
+**Security Classification:** DEMONSTRATION DATA ONLY  
+
+---
+
+## 1. Sector Production Audit Benchmark Table (Page 1)
+| Mine Block Name | Reporting Period | Coal Production (MT) | Proved Reserves (MT) | Stripping Ratio (m³/t) | Seam Thickness (m) | GCV Grade |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **DEMO Project Alpha (Gevra)** | 2024-25 | 70.50 MT | 425.80 MT | 2.14 m³/t | 18.4 m | G11 (4400 kcal) |
+| **DEMO Project Beta (Dipka)** | 2024-25 | 38.20 MT | 310.40 MT | 1.95 m³/t | 15.2 m | G12 (4100 kcal) |
+| **Kusmunda OCP Sector** | 2024-25 | 46.80 MT | 380.00 MT | 2.45 m³/t | 21.0 m | G10 (4700 kcal) |
+| **Rajmahal OCP Sector** | 2024-25 | 22.40 MT | 215.60 MT | 3.10 m³/t | 12.8 m | G13 (3800 kcal) |
+| **Singrauli Block Sector** | 2024-25 | 31.00 MT | 290.20 MT | 2.30 m³/t | 16.5 m | G11 (4500 kcal) |
+
+*Page 2: All values cross-audited against synthetic production logs.*

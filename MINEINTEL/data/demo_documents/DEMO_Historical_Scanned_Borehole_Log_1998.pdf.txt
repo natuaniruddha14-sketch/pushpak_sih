@@ -1,0 +1,29 @@
+
+================================================================================
+                      MINEINTEL SYNTHETIC DEMO DATASET                          
+  DISCLAIMER: DEMONSTRATION DATA ONLY — NOT OFFICIAL CMPDI / CIL RECORDS       
+================================================================================
+
+[SCANNED DOCUMENT OCR RECOVERY SIMULATION — VINTAGE BOREHOLE LOG 1998]
+DOCUMENT REF: HISTORICAL/BH-1998/COR-04
+MINE LOCATION: GEVRA BLOCK OLD QUARRY SECTOR
+DRILLING DATE: 14-OCT-1998
+CHIEF GEOLOGIST: DR. K.R. PRASAD (RETIRED)
+
+================================================================================
+BOREHOLE STRATIGRAPHY LOG SHEET (HANDWRITTEN OCR FIELD RECOVERY)
+================================================================================
+DEPTH (m)    | THICKNESS (m) | LITHOLOGY DESCRIPTION                  | RECOVERY %
+0.0 - 12.5m  | 12.5m         | WEATHERED SANDSTONE OVERBURDEN         | 88.0%
+12.5 - 28.9m | 16.4m         | COAL SEAM V (BLACK SHINY BITUMINOUS)   | 96.5%
+28.9 - 34.2m | 5.3m          | INTERCALATED SHALE & SILTSTONE         | 92.0%
+34.2 - 52.6m | 18.4m         | COAL SEAM VI/VII (HIGH GRADE CORE)     | 98.2%
+================================================================================
+
+HISTORICAL COAL QUALITY (1998 ANALYSIS):
+PROVED RESERVES (1998 ESTIMATE): 385.0 MILLION TONNES
+GCV GRADE: G11 (4,350 KCAL/KG)
+ASH CONTENT: 33.8%
+MOISTURE CONTENT: 7.2%
+
+NOTE: SCANNED IMAGE BLUR DETECTED ON MARGINS (OCR CONFIDENCE: 78.4%).
